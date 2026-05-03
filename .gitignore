@@ -1,0 +1,5 @@
+bin/
+*.pdb
+*.exe
+log.txt
+main_web/bin/
