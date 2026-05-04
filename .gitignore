@@ -1,6 +1,8 @@
 bin/
 *.pdb
 *.exe
+*.dll
+*.so
 log.txt
 main_web/bin/
 game/karl2d/
