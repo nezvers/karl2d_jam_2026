@@ -3,3 +3,4 @@ bin/
 *.exe
 log.txt
 main_web/bin/
+game/karl2d/
