@@ -1,23 +1,26 @@
 #+vet explicit-allocators
 package karl2d_hot_reload_game
 
-import k2 "karl2d"
+import karl2d "karl2d"
 import "base:runtime"
-import "core:math/linalg"
-import "core:fmt"
+// import "core:math/linalg"
+// import "core:fmt"
+
+Vec2 :: karl2d.Vec2
 
 Game_Memory :: struct {
 	allocator: runtime.Allocator,
 	counter: int,
-	player_pos: k2.Vec2,
+	player_pos: karl2d.Vec2,
 }
 
 @(private="file")
 g: ^Game_Memory
 
 @export
-game_startup :: proc(allocator: runtime.Allocator) -> (k2_state: ^k2.State) {
-	return k2.init(
+game_startup :: proc(allocator: runtime.Allocator) -> (k2_state: ^karl2d.State) {
+	// TODO: Load game
+	return karl2d.init(
 		1280,
 		720,
 		"Karl2D: Hot Reload Example",
@@ -30,11 +33,11 @@ game_startup :: proc(allocator: runtime.Allocator) -> (k2_state: ^k2.State) {
 
 @export
 game_shutdown :: proc() {
-	k2.shutdown()
+	karl2d.shutdown()
 }
 
 @export
-game_init_state :: proc(k2_state: ^k2.State, allocator: runtime.Allocator) {
+game_init_state :: proc(k2_state: ^karl2d.State, allocator: runtime.Allocator) {
 	g = new(Game_Memory, allocator)
 	g.allocator = allocator
 	g.player_pos = {200, 200}
@@ -48,47 +51,13 @@ game_destroy_state :: proc() {
 
 @export
 game_update :: proc() -> bool {
-	if !k2.update() {
+	if !karl2d.update() {
 		return false
 	}
 
-	movement: k2.Vec2
+	karl2d.clear(karl2d.LIGHT_BLUE)
 
-	if k2.key_is_held(.Up) {
-		movement.y -= 1
-	}
-
-	if k2.key_is_held(.Down) {
-		movement.y += 1
-	}
-
-	if k2.key_is_held(.Left) {
-		movement.x -= 1
-	}
-
-	if k2.key_is_held(.Right) {
-		movement.x += 1
-	}
-
-	g.player_pos += linalg.normalize0(movement) * k2.get_frame_time() * 200
-
-	g.counter += 1
-	k2.clear(k2.LIGHT_BLUE)
-	k2.draw_circle(g.player_pos, 100, k2.DARK_BLUE)
-	k2.draw_text(fmt.tprint(g.counter), {20, 20}, 100, k2.BLACK)
-
-	screen_rect := k2.rect_from_pos_size({}, k2.get_screen_size())
-	bottom_bar := k2.rect_cut_bottom(&screen_rect, 36, 0)
-	k2.draw_rect(bottom_bar, k2.DARK_GRAY)
-	bottom_bar = k2.rect_shrink(bottom_bar, 4, 4)
-	k2.draw_text("Hot reload by running `odin run .` (in same folder as `build.odin`)", k2.rect_top_left(bottom_bar), bottom_bar.h, k2.WHITE)
-	source_code_rect := k2.rect_cut_right(&bottom_bar, k2.ui_button_width("Source Code", bottom_bar.h) + 50, 0)
-
-	if k2.ui_button(source_code_rect, "Source Code") {
-		k2.open_url("https://github.com/karl-zylinski/karl2d-hot-reload-template")
-	}
-
-	k2.present()
+	karl2d.present()
 
 	free_all(context.temp_allocator)
 	return true
@@ -105,12 +74,12 @@ game_memory_size :: proc() -> int {
 }
 
 @export
-game_hot_reloaded :: proc(memory: ^Game_Memory, k2_state: ^k2.State) {
-	k2.set_internal_state(k2_state)
+game_hot_reloaded :: proc(memory: ^Game_Memory, k2_state: ^karl2d.State) {
+	karl2d.set_internal_state(k2_state)
 	g = memory
 }
 
 @export
 game_force_restart :: proc() -> bool {
-	return k2.key_went_down(.F6)
+	return karl2d.key_went_down(.F6)
 }
