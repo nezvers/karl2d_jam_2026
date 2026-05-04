@@ -21,12 +21,15 @@ Game_Memory :: state.Game_Memory
 @(private="file")
 g: ^Game_Memory
 
+WINDOW_SIZE :[2]int: {1280, 720}
+GAME_TITLE :: "Karl2D Game Template"
+
 @export
 game_startup :: proc(allocator: runtime.Allocator) -> (k2_state: ^karl2d.State) {
 	return karl2d.init(
-		1280,
-		720,
-		"Karl2D: Hot Reload Example",
+		WINDOW_SIZE.x,
+		WINDOW_SIZE.y,
+		GAME_TITLE,
 		allocator = allocator,
 		options = {
 			window_mode = .Windowed_Resizable,
@@ -36,6 +39,7 @@ game_startup :: proc(allocator: runtime.Allocator) -> (k2_state: ^karl2d.State) 
 
 @export
 game_shutdown :: proc() {
+	if state.current.finit != nil {state.current.finit()}
 	karl2d.shutdown()
 }
 
@@ -43,12 +47,12 @@ game_shutdown :: proc() {
 game_init_state :: proc(k2_state: ^karl2d.State, allocator: runtime.Allocator) {
 	// TODO: Load game
 	g = new(Game_Memory, allocator)
+	state.g = g
 	g.allocator = allocator
 	g.window_scale = karl2d.get_window_scale()
 	g.game_width = 480
 	g.game_height = 270
 	g.background_color = karl2d.WHITE
-	state.g = g
 
 	screen.SetScreen(0)
 }
@@ -56,8 +60,8 @@ game_init_state :: proc(k2_state: ^karl2d.State, allocator: runtime.Allocator) {
 @export
 game_destroy_state :: proc() {
 	if state.current.finit != nil {state.current.finit()}
-	free(g, g.allocator)
 	state.g = nil
+	free(g, g.allocator)
 }
 
 
@@ -66,6 +70,7 @@ game_update :: proc() -> bool {
 	if !karl2d.update() {
 		return false
 	}
+	
 	events := karl2d.get_events()
 	window.process_events(events)
 
