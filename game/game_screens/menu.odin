@@ -43,6 +43,7 @@ process :: proc() {
     // karl2d.update_audio_stream(music)
     if input.is_any_key_released() {
         // change_game_state(screen_game_state)
+        Set(.Gameplay)
     }
 }
 

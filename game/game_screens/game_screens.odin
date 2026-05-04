@@ -5,11 +5,13 @@ import state "../game_state"
 list: []state.GameState = {
     screen_title_state,
     screen_menu_state,
+    screen_game_state,
 }
 
 Screens :: enum int {
     Title,
     Main_Menu,
+    Gameplay,
 }
 
 Set :: proc(index:Screens) {
