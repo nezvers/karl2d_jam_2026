@@ -28,6 +28,7 @@ finit :: proc() {}
 process :: proc() {
     if input.is_any_key_released() {
         // state.change_game_state(screen_menu_state)
+        Set(Screens.Main_Menu)
     }
 }
 

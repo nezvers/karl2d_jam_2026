@@ -54,7 +54,8 @@ game_init_state :: proc(k2_state: ^karl2d.State, allocator: runtime.Allocator) {
 	g.game_height = 270
 	g.background_color = karl2d.WHITE
 
-	screen.SetScreen(0)
+	// STARTING SCREEN
+	screen.Set(.Title)
 }
 
 @export
@@ -70,7 +71,7 @@ game_update :: proc() -> bool {
 	if !karl2d.update() {
 		return false
 	}
-	
+
 	events := karl2d.get_events()
 	window.process_events(events)
 
@@ -102,7 +103,7 @@ game_hot_reloaded :: proc(memory: ^Game_Memory, k2_state: ^karl2d.State) {
 	karl2d.set_internal_state(k2_state)
 	g = memory
 	state.g = g
-	screen.SetScreen(g.game_screen)
+	screen.Set(cast(screen.Screens)g.game_screen)
 }
 
 @export
