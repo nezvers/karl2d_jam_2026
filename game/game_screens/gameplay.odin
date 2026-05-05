@@ -122,8 +122,7 @@ process :: proc() {
                     }
                 }
                 if proj.vfx_impact != nil {
-                    pos:Vec2 = proj.position - proj.height
-                    _, _ = vfx.NewInstance(proj.vfx_impact^, pos)
+                    _, _ = vfx.NewInstance(proj.vfx_impact^, proj.position)
                 }
                 if proj.sfx_impact != nil {
                     sfx.Play(proj.sfx_impact)

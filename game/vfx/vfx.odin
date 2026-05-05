@@ -137,31 +137,5 @@ DrawForeground :: proc() {
 }
 
 DrawInstance::proc(inst: ^Vfx){
-    sprite:^spr.Sprite = &inst.sprite
-    texture:karl2d.Texture = inst.texture
-    tint:karl2d.Color = inst.tint
-
-    target_rect, source_rect: = spr.GetSpriteFrame(sprite)
-    // target_rect.y -= inst.height
-
-    target_rect.zw *= sprite.scale
-    origin:karl2d.Vec2 = -sprite.offset * {abs(sprite.scale.x), abs(sprite.scale.y)}
-
-    if sprite.scale.x < 0 {
-        source_rect.z *= -1
-    }
-
-    if sprite.scale.y < 0 {
-        origin.y = (-sprite.offset.y * sprite.scale.y) + source_rect.w
-        source_rect.w *= -1
-    }
-    
-    karl2d.draw_texture_fit(
-		texture,
-		transmute(karl2d.Rect)source_rect,
-		transmute(karl2d.Rect)target_rect,
-		origin,
-		sprite.rotation,
-        tint,
-	)
+    spr_glue.DrawSprite(&inst.sprite, inst.texture, inst.tint)
 }

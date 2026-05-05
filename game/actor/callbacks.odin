@@ -85,7 +85,7 @@ DrawElectricianCallback :: proc(actor_ptr: ^Actor) {
     
     if actor_ptr.aim_dir.x < 0 {
         weapon_copy.scale.y = -1
-        // weapon_copy.offset.y = -weapon_copy.offset.y + 16
+        // weapon_copy.origin.y = -weapon_copy.origin.y + 16
     }
     weapon.DrawInstance(&weapon_copy)
     

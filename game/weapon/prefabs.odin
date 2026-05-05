@@ -25,7 +25,7 @@ prefab_shotgun: Weapon = {
         animation_set = {
             frames = {&anim_weapon},
         },
-        offset = {-8, -8},
+        origin = {8, 8},
         scale = {1, 1},
     },
     bullet = &projectile.prefab_bullet1,
@@ -48,7 +48,7 @@ prefab_bite: Weapon = {
         animation_set = {
             frames = {&anim_weapon},
         },
-        offset = {-8, -8},
+        origin = {8, 8},
         scale = {1, 1},
     },
     bullet = &projectile.prefab_bite,
