@@ -20,7 +20,6 @@ prefab_bullet1: Projectile = {
     properties = {
         kickback = 200,
         speed = 240,
-        height = 7,
         damping = 0.05,
         damage = 50.0,
     },
@@ -28,8 +27,9 @@ prefab_bullet1: Projectile = {
         animation_set = {
             frames = {&anim_projectile1},
         },
-        offset = {-8, -8},
+        origin = {8, 8},
         scale = {1, 1},
+        offset = {0, -7},
     },
     visible = true,
     tint = karl2d.WHITE,
@@ -44,7 +44,6 @@ prefab_bite: Projectile = {
     properties = {
         kickback = 100,
         speed = 0,
-        height = 7,
         damping = 0.05,
         damage = 10.0,
         stay = true,
@@ -55,8 +54,9 @@ prefab_bite: Projectile = {
             frames = {&anim_projectile5},
             frame_rate = 12,
         },
-        offset = {-8, -8},
+        origin = {8, 8},
         scale = {1, 1},
+        offset = {0, -7},
     },
     visible = true,
     tint = karl2d.WHITE,

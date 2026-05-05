@@ -1,6 +1,8 @@
 # Rope and Shotgun
 Using Karl2D Hot-Reload template
-Play game on [Itch.io](https://nezvers.itch.io/rope-and-shotgun)
+Play game on [Itch.io](https://nezvers.itch.io/rope-and-shotgun)    
+    
+Project utilizes my utility libraries - [Odin Utilities](https://github.com/nezvers/odin_utilities)    
 
 Currently only works on Windows.
 

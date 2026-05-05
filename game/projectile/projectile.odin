@@ -14,7 +14,6 @@ vec2 :: [2]f32
 Properties :: struct {
     speed: f32,
     kickback: f32,
-    height: f32,
     damping: f32,
     collide: u32,
     damage: f32,
@@ -91,38 +90,8 @@ UpdateInstance :: proc(projectile: ^Projectile, delta_time: f32) {
 Draw :: proc() {
     active_pool: = projectile_pool[:projectile_count]
     for &projectile in active_pool {
-        DrawInstance(&projectile)
+        spr_glue.DrawSprite(&projectile.sprite, projectile.texture, projectile.tint)
     }
-}
-
-DrawInstance::proc(projectile: ^Projectile){
-    sprite:^spr.Sprite = &projectile.sprite
-    texture:karl2d.Texture = projectile.texture
-    tint:karl2d.Color = projectile.tint
-
-    target_rect, source_rect: = spr.GetSpriteFrame(sprite)
-    target_rect.y -= projectile.height
-
-    target_rect.zw *= sprite.scale
-    origin:karl2d.Vec2 = -sprite.offset * {abs(sprite.scale.x), abs(sprite.scale.y)}
-
-    if sprite.scale.x < 0 {
-        source_rect.z *= -1
-    }
-
-    if sprite.scale.y < 0 {
-        origin.y = (-sprite.offset.y * sprite.scale.y) + source_rect.w
-        source_rect.w *= -1
-    }
-    
-    karl2d.draw_texture_fit(
-		texture,
-		transmute(karl2d.Rect)source_rect,
-		transmute(karl2d.Rect)target_rect,
-		origin,
-		sprite.rotation,
-        tint,
-	)
 }
 
 SpawnProjectile :: proc(preset:Projectile, position:vec2, dir:vec2, spread:f32)->(inst: ^Projectile, ok:bool) {

@@ -16,7 +16,7 @@ prefab_impact:Vfx = {
             frames = {&anim_strip_5},
             frame_rate = 12,
         },
-        offset = {-8, -8},
+        origin = {8, 8},
         scale = {1, 1},
     },
     visible = true,
