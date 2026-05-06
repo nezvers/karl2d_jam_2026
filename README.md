@@ -4,7 +4,11 @@ Play game on [Itch.io](https://nezvers.itch.io/rope-and-shotgun)
     
 Project utilizes my utility libraries - [Odin Utilities](https://github.com/nezvers/odin_utilities)    
 
-Currently only works on Windows.
+### Build
+`odin run main_release`
+
+# Hot-Reload
+Hot-Reload currently only works on Windows.
 
 ## How to use the hot reload
 1. Download this repository, use it as a template for your project
