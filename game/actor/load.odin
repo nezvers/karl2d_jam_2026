@@ -8,11 +8,11 @@ texture_electrician: karl2d.Texture
 texture_zombie: karl2d.Texture
 
 Load :: proc() {
-    texture_plumber = karl2d.load_texture_from_bytes(assets.texture_char_plumber, {.Premultiply_Alpha})
+    texture_plumber = karl2d.load_texture_from_bytes(assets.texture_char_plumber, {premultiply_alpha = true})
     prefab_plumber.texture = texture_plumber
-    texture_electrician = karl2d.load_texture_from_bytes(assets.texture_char_electrician, {.Premultiply_Alpha})
+    texture_electrician = karl2d.load_texture_from_bytes(assets.texture_char_electrician, {premultiply_alpha = true})
     prefab_electrician.texture = texture_electrician
-    texture_zombie = karl2d.load_texture_from_bytes(assets.texture_char_zomby_walker, {.Premultiply_Alpha})
+    texture_zombie = karl2d.load_texture_from_bytes(assets.texture_char_zomby_walker, {premultiply_alpha = true})
     prefab_zombie.texture = texture_zombie
 }
 

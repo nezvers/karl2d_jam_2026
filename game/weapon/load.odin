@@ -6,7 +6,7 @@ import "../assets"
 texture_shotgun: karl2d.Texture
 
 Load :: proc() {
-    texture_shotgun = karl2d.load_texture_from_bytes(assets.texture_weapon_shotgun, {.Premultiply_Alpha})
+    texture_shotgun = karl2d.load_texture_from_bytes(assets.texture_weapon_shotgun, {premultiply_alpha = true})
     prefab_shotgun.texture = texture_shotgun
     assert(prefab_shotgun.sound != nil)
 }

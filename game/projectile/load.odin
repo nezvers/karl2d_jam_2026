@@ -9,10 +9,10 @@ texture_bite: karl2d.Texture
 
 
 Load :: proc() {
-    texture_bullet1 = karl2d.load_texture_from_bytes(assets.texture_projectile_bullet1, {.Premultiply_Alpha})
+    texture_bullet1 = karl2d.load_texture_from_bytes(assets.texture_projectile_bullet1, {premultiply_alpha = true})
     prefab_bullet1.texture = texture_bullet1
 
-    texture_bite = karl2d.load_texture_from_bytes(assets.texture_projectile_bite, {.Premultiply_Alpha})
+    texture_bite = karl2d.load_texture_from_bytes(assets.texture_projectile_bite, {premultiply_alpha = true})
     prefab_bite.texture = texture_bite
 }
 

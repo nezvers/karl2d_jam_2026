@@ -42,29 +42,29 @@ settings_impact: sound_effects.SoundEffect = {
     pitch_return = 0,           // Return to starting pitch
 }
 
-sound_gun1: karl2d.Sound
-sound_damage: karl2d.Sound
-sound_impact: karl2d.Sound
+clip_gun1: karl2d.Audio_Clip
+clip_damage: karl2d.Audio_Clip
+clip_impact: karl2d.Audio_Clip
 
 gun: SfxKarl2D
 damage: SfxKarl2D
 impact: SfxKarl2D   // Projectile.sfx_impact
 
 Load :: proc() {
-    sound_gun1 = karl2d.load_sound_from_bytes(assets.sound_gun1)
-    gun = snd_glue.Init(&settings_gun1, &sound_gun1)
+    clip_gun1 = karl2d.load_audio_clip_from_bytes(assets.sound_gun1)
+    gun = snd_glue.Init(&settings_gun1, &clip_gun1)
 
-    sound_damage = karl2d.load_sound_from_bytes(assets.sound_damage)
-    damage = snd_glue.Init(&settings_damage, &sound_damage)
+    clip_damage = karl2d.load_audio_clip_from_bytes(assets.sound_damage)
+    damage = snd_glue.Init(&settings_damage, &clip_damage)
 
-    sound_impact = karl2d.load_sound_from_bytes(assets.sound_impact)
-    impact = snd_glue.Init(&settings_impact, &sound_impact)
+    clip_impact = karl2d.load_audio_clip_from_bytes(assets.sound_impact)
+    impact = snd_glue.Init(&settings_impact, &clip_impact)
 }
 
 Destroy :: proc() {
-    karl2d.destroy_sound(sound_gun1)
-    karl2d.destroy_sound(sound_damage)
-    karl2d.destroy_sound(sound_impact)
+    karl2d.destroy_audio_clip(clip_gun1)
+    karl2d.destroy_audio_clip(clip_damage)
+    karl2d.destroy_audio_clip(clip_impact)
 }
 
 Play :: proc(sound: ^SfxKarl2D) {
