@@ -12,6 +12,11 @@ import "core:time"
 import "core:strings"
 import "base:runtime"
 
+// Folder where build.odin puts game.dll. The hot reload test (hot_reload_test/) uses its own folder
+DLL_DIR :: #config(DLL_DIR, "bin/hot_reload")
+// Test mode: scripted by files in DLL_DIR, prints a status line every few frames
+HOT_RELOAD_TEST :: #config(HOT_RELOAD_TEST, false)
+
 when ODIN_OS == .Windows {
 	DLL_EXT :: ".dll"
 } else when ODIN_OS == .Darwin {
@@ -21,19 +26,17 @@ when ODIN_OS == .Windows {
 }
 
 copy_dll :: proc(to: string) -> bool {
-	exit: i32
-	when ODIN_OS == .Windows {
-		exit = libc.system(fmt.ctprintf("copy bin\\hot_reload\\game.dll {0}", to))
-	} else {
-		exit = libc.system(fmt.ctprintf("cp game" + DLL_EXT + " {0}", to))
-	}
-
-	if exit != 0 {
-		log.errorf("Failed to copy game" + DLL_EXT + " to {0}", to)
+	err := os.copy_file(to, DLL_DIR + "/game" + DLL_EXT)
+	if err != nil {
+		log.errorf("Failed to copy game" + DLL_EXT + " to {0}: {1}", to, err)
 		return false
 	}
-
 	return true
+}
+
+Debug_Info :: struct {
+	screen: int,
+	counter: int,
 }
 
 Game_API :: struct {
@@ -47,12 +50,17 @@ Game_API :: struct {
 	memory_size: proc() -> int,
 	hot_reloaded: proc(mem: rawptr, k2_state: rawptr),
 	force_restart: proc() -> bool,
+	release_screen: proc(),
+	memory_layout: proc() -> u64,
+	debug_info: proc() -> Debug_Info,
+	debug_set_screen: proc(index: int),
 	modification_time: time.Time,
 	api_version: int,
 }
 
+// A DLL that is still being written, or that doesn't match this exe, is not fatal: the game keeps running the old one
 load_game_api :: proc(api_version: int) -> (api: Game_API, ok: bool) {
-	mod_time, mod_time_error := os.last_write_time_by_name("bin/hot_reload/game" + DLL_EXT)
+	mod_time, mod_time_error := os.last_write_time_by_name(DLL_DIR + "/game" + DLL_EXT)
 	if mod_time_error != os.ERROR_NONE {
 		log.errorf(
 			"Failed getting last write time of game" + DLL_EXT + ", error code: {1}",
@@ -67,7 +75,11 @@ load_game_api :: proc(api_version: int) -> (api: Game_API, ok: bool) {
 
 	_, ok = dynlib.initialize_symbols(&api, game_dll_name, "game_", "lib")
 	if !ok {
-		log.panicf("Failed initializing symbols: {0}. API struct: %v", dynlib.last_error(), api)
+		log.errorf("Failed initializing symbols: {0}", dynlib.last_error())
+		api.api_version = api_version
+		unload_game_api(&api)
+		api = {}
+		return
 	}
 
 	api.api_version = api_version
@@ -84,11 +96,35 @@ unload_game_api :: proc(api: ^Game_API) {
 		}
 	}
 
+	// the copy is named after the version of the build that was loaded, os.remove fails while it is still loaded
 	if os.remove(fmt.tprintf("game_{0}" + DLL_EXT, api.api_version)) != nil {
 		log.errorf("Failed to remove game_{0}" + DLL_EXT + " copy", api.api_version)
 	}
 }
 
+
+// Memory has to be reused only when the new DLL describes it exactly like the old one. Same size is not enough, a reordered or
+// retyped field keeps the size and would be read as garbage.
+same_game_memory :: proc(a, b: Game_API) -> bool {
+	return a.memory_size() == b.memory_size() && a.memory_layout() == b.memory_layout()
+}
+
+// Hand the running game over to a newly loaded DLL. The old DLL stays loaded because the new state can still point into it.
+switch_game_api :: proc(old, new: Game_API, k2_state: rawptr, old_game_apis: ^[dynamic]Game_API) -> Game_API {
+	append(old_game_apis, old)
+
+	if same_game_memory(old, new) {
+		// Keep the game memory. What the running screen holds (globals, audio, textures) lives in the old DLL and is released by
+		// it, the new DLL starts the screen again on the same memory.
+		game_memory := old.memory()
+		old.release_screen()
+		new.hot_reloaded(game_memory, k2_state)
+	} else {
+		old.destroy_state()
+		new.init_state(k2_state, context.allocator)
+	}
+	return new
+}
 
 main :: proc() {
 	context.logger = log.create_console_logger()
@@ -124,36 +160,52 @@ main :: proc() {
 	game_api.init_state(k2_state, context.allocator)
 
 	old_game_apis := make([dynamic]Game_API, default_allocator)
+	next_reload_try: time.Time
 
 	window_open := true
+	frame := 0
 	for window_open {
-		if game_api.force_restart() {
+		when HOT_RELOAD_TEST {
+			frame += 1
+			// gameplay has the real resources to keep or release
+			if frame == 10 || os.exists(DLL_DIR + "/gameplay") {
+				os.remove(DLL_DIR + "/gameplay")
+				game_api.debug_set_screen(2)
+			}
+			if frame % 5 == 0 {
+				info := game_api.debug_info()
+				fmt.printfln("[HR] frame=%d version=%d screen=%d counter=%d", frame, game_api.api_version, info.screen, info.counter)
+			}
+			if os.exists(DLL_DIR + "/stop") {
+				break
+			}
+		}
+		restart_requested := game_api.force_restart()
+		when HOT_RELOAD_TEST {
+			if os.exists(DLL_DIR + "/restart") {
+				os.remove(DLL_DIR + "/restart")
+				restart_requested = true
+			}
+		}
+		if restart_requested {
 			game_api.destroy_state()
 			game_api.init_state(k2_state, context.allocator)
 		}
 		
 		window_open = game_api.update()
 
-		game_dll_mod, game_dll_mod_err := os.last_write_time_by_name("bin/hot_reload/game" + DLL_EXT)
+		game_dll_mod, game_dll_mod_err := os.last_write_time_by_name(DLL_DIR + "/game" + DLL_EXT)
 		reload := game_dll_mod_err == os.ERROR_NONE && game_api.modification_time != game_dll_mod
 
-		if reload {
+		if reload && time.since(next_reload_try) > 0 {
 			new_game_api, new_game_api_ok := load_game_api(game_api_version)
 
 			if new_game_api_ok {
-				append(&old_game_apis, game_api)
-				
-				if game_api.memory_size() != new_game_api.memory_size() {
-					game_api.destroy_state()
-					game_api = new_game_api
-					game_api.init_state(k2_state, context.allocator)
-				} else {
-					game_memory := game_api.memory()
-					game_api = new_game_api
-					game_api.hot_reloaded(game_memory, k2_state)
-				}
-
+				game_api = switch_game_api(game_api, new_game_api, k2_state, &old_game_apis)
 				game_api_version += 1
+			} else {
+				// most likely the build is still writing the DLL
+				next_reload_try = time.time_add(time.now(), 500 * time.Millisecond)
 			}
 		}
 

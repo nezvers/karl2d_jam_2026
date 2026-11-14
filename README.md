@@ -26,3 +26,6 @@ In the project's root, run: `odin run game/karl2d/build_web -- main_web`. The we
 
 ## Making a release build your game
 In the project's root, run: `odin build main_release`
+
+## Testing the hot reload
+`odin run hot_reload_test` builds the exe in test mode and three DLL variants (same layout, other size, other layout of the same size), loads them into the running game one after another and checks that game memory is kept or rebuilt correctly, the restart key, a half written DLL and that nothing leaks at exit. It opens the game window for a few seconds.
