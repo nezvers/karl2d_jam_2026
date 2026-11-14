@@ -81,7 +81,7 @@ game_init_state :: proc(k2_state: ^karl2d.State, allocator: runtime.Allocator) {
 	// when a scene was not predicted and prefetches the assets of the scenes that are likely to come next
 	g.placeholder = scene_glue.PlaceholderTexture()
 	assets.Bind(&g.scene_system.assets, g.placeholder)
-	scene.SceneSystemInit(&g.scene_system, {scene_memory = g.scene_memory[:]}, screen.List(), assets.defs[:], scene_glue.loaders[:], &g.asset_storage)
+	scene.SceneSystemInit(&g.scene_system, {scene_memory = g.scene_memory[:], decode_memory = g.decode_memory[:], allocator = allocator}, screen.List(), assets.defs[:], scene_glue.loaders[:], &g.asset_storage)
 	actor.RegisterPrefabs(&g.scene_system)
 
 	// STARTING SCREEN

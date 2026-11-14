@@ -11,6 +11,9 @@ Counter :: f64 when GAME_MEMORY_FLOAT_COUNTER else int
 
 // Memory of the running scene: what a scene allocates in init goes here and is freed in one step when the scene exits
 SCENE_MEMORY_SIZE :: 256 * 1024
+// Split between the loader threads, each decodes images into its part. Empty (or a platform without threads, the web): everything
+// decodes on the main thread. Per thread it has to fit the biggest decoded texture
+DECODE_MEMORY_SIZE :: 1024 * 1024
 
 Game_Memory :: struct {
 	allocator: runtime.Allocator,
@@ -31,6 +34,7 @@ Game_Memory :: struct {
 	scene_system: scene.SceneSystem,
 	asset_storage: scene.AssetStorage(assets.COUNT),
 	scene_memory: [SCENE_MEMORY_SIZE]byte,
+	decode_memory: [DECODE_MEMORY_SIZE]byte,
 	placeholder: scene.AssetValue,    // texture shown until a texture asset is loaded
 }
 
