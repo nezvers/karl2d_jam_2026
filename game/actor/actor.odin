@@ -2,6 +2,8 @@ package actor
 
 // import spr "../sprite"
 import spr_glue "../sprite/karl2d"
+import "../assets"
+import "../scene"
 // import karl2d "../karl2d"
 import "../weapon"
 import "../sfx"
@@ -57,6 +59,7 @@ Actor :: struct {
     id:int,
     weapon: ^weapon.Weapon,
     damage_sound: ^sfx.SfxKarl2D,
+    texture_asset: scene.AssetId,   // looked up when drawn: a placeholder until the texture is loaded
 }
 
 
@@ -128,6 +131,7 @@ Draw :: proc() {
 
     for i:int = 0; i < actor_count; i += 1 {
         actor:^Actor = sorted_list[i]
+        if actor.texture_asset != scene.ASSET_NONE { actor.visuals.texture = assets.Texture(actor.texture_asset) }
         spr_glue.DrawSpriteKarl2d(&actor.visuals)
         if actor.draw_callback == nil { continue }
         actor.draw_callback(actor)

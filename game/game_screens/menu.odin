@@ -1,9 +1,9 @@
 #+ private file
 package game_screens
 
-import "core:fmt"
 // import "core:math"
 import state "../game_state"
+import "../scene"
 import "../ui"
 import "../window"
 import "../input"
@@ -11,13 +11,15 @@ import "../karl2d"
 // import "assets"
 
 @(private="package")
-screen_menu_state: state.GameState = {
-    init,
-    finit,
-    process,
-    draw,
-    gui,
-    "Main Menu",
+screen_menu_def: scene.SceneDef = {
+    name = "Main Menu",
+    init = init,
+    finit = finit,
+    update = process,
+    draw = draw,
+    gui = gui,
+    // The player reads the menu while the game scene loads in the background, pressing a key then starts it without a wait
+    next = {scene.SceneId(Screens.Gameplay)},
 }
 
 TITLE :: "Start"

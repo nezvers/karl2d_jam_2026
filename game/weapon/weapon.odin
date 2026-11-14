@@ -1,10 +1,10 @@
 package weapon
 
-import spr "../sprite"
 import projectile "../projectile"
 import spr_glue "../sprite/karl2d"
-import karl2d "../karl2d"
 import "../sfx"
+import "../assets"
+import "../scene"
 // import "core:math"
 
 Properties :: struct {
@@ -21,8 +21,10 @@ Weapon :: struct {
     bullet: ^projectile.Projectile, 
     sound: ^sfx.SfxKarl2D,
     name: string,
+    texture_asset: scene.AssetId,
 }
 
 DrawInstance::proc(weapon: ^Weapon){
+    if weapon.texture_asset != scene.ASSET_NONE { weapon.texture = assets.Texture(weapon.texture_asset) }
     spr_glue.DrawSprite(&weapon.sprite, weapon.texture, weapon.tint)
 }

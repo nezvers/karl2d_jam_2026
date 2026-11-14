@@ -17,18 +17,28 @@ import "../assets"
 import "../cool_math"
 import "../window"
 import state "../game_state"
+import "../scene"
+import scene_glue "../scene/karl2d"
 // import spr "../sprite"
 // import spr_glue "../sprite/karl2d"
 
 
 @(private="package")
-screen_game_state: state.GameState = {
-    init,
-    finit,
-    process,
-    draw,
-    gui,
-    "Gameplay",
+screen_game_def: scene.SceneDef = {
+    name = "Gameplay",
+    init = init,
+    finit = finit,
+    update = process,
+    draw = draw,
+    gui = gui,
+    // The scene cannot start without these, they are loaded first if it was not predicted (behind a transition)
+    required = {
+        assets.TEXTURE_SHOTGUN, assets.TEXTURE_BULLET, assets.TEXTURE_BITE, assets.TEXTURE_IMPACT,
+        assets.SOUND_GUN, assets.SOUND_DAMAGE, assets.SOUND_IMPACT,
+    },
+    prefabs = {actor.PREFAB_PLUMBER, actor.PREFAB_ELECTRICIAN, actor.PREFAB_ZOMBIE},
+    // Nice to have: the music starts whenever it has loaded
+    optional = {assets.MUSIC_DEEPER_DUNGEON},
 }
 
 player_actor: ^actor.Actor
@@ -36,6 +46,7 @@ npc_actor: ^actor.Actor
 
 npc_shotgun: weapon.Weapon
 music:karl2d.Audio_Stream
+music_ready: bool
 
 @(private="package")
 kill_count:u64
@@ -45,13 +56,10 @@ init :: proc() {
     state.g.background_color.r = 0xcf
     state.g.background_color.g = 0x96
     state.g.background_color.b = 0x8c
-    // Resets Actor pool
-    sfx.Load()
-    vfx.Load()
-    projectile.Load()
+    // The assets are loaded by the scene system, this scene required them. Resets the pools
+    sfx.Bind()
     projectile.Reset()
-    weapon.Load()
-    actor.Load()
+    actor.ResolvePrefabs()
     actor.Reset()
 
 
@@ -69,25 +77,31 @@ init :: proc() {
 
     enemies.Start()
 
-    music = karl2d.load_audio_stream_from_bytes(assets.music_deeper_dungeon)
+    // The music is optional: it starts when it has loaded, right now if it was prefetched. The listener follows this run of the scene
+    music_ready = false
+    scene.Listen(&state.g.scene_system, .ASSET_READY, u32(assets.MUSIC_DEEPER_DUNGEON), on_music_ready, nil, true, scene.SceneCurrentInstance(&state.g.scene_system))
+}
+
+on_music_ready :: proc(event: scene.Event, user: rawptr) {
+    stream, ok := scene_glue.AudioStreamOf(assets.store, assets.MUSIC_DEEPER_DUNGEON)
+    if !ok { return }
+    music = stream
+    music_ready = true
     karl2d.set_audio_stream_loop(music, true)
     karl2d.play_audio_stream(music)
     karl2d.set_audio_stream_volume(music, 0.4)
 }
 
 finit :: proc() {
-    actor.Destroy()
-    weapon.Destroy()
-    projectile.Destroy()
-    sfx.Destroy()
-    vfx.Destroy()
-
-    karl2d.stop_audio_stream(music)
-    karl2d.destroy_audio_stream(music)
+    // The textures and sounds belong to the scene system, it unloads them when no scene needs them any more
+    if music_ready {
+        karl2d.stop_audio_stream(music)
+        music_ready = false
+    }
 }
 
 process :: proc() {
-    karl2d.update_audio_stream(music)
+    if music_ready { karl2d.update_audio_stream(music) }
 
     delta_time: f32 = karl2d.get_frame_time()
 

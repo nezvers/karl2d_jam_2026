@@ -2,7 +2,8 @@ package vfx
 
 import spr "../sprite"
 import spr_glue "../sprite/karl2d"
-import karl2d "../karl2d"
+import "../assets"
+import "../scene"
 
 
 vec2 :: [2]f32
@@ -11,6 +12,7 @@ Vfx :: struct {
     using visual: spr_glue.SpriteKarl2d,
     is_foreground:bool,
     id:int,
+    texture_asset: scene.AssetId,
 }
 
 MAX_VFX :: 512
@@ -137,5 +139,6 @@ DrawForeground :: proc() {
 }
 
 DrawInstance::proc(inst: ^Vfx){
+    if inst.texture_asset != scene.ASSET_NONE { inst.texture = assets.Texture(inst.texture_asset) }
     spr_glue.DrawSprite(&inst.sprite, inst.texture, inst.tint)
 }

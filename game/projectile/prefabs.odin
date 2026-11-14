@@ -3,6 +3,7 @@ package projectile
 import karl2d "../karl2d"
 import spr "../sprite"
 import "../vfx"
+import "../assets"
 import "../sfx"
 // import spr_glue "../sprite/karl2d"
 
@@ -14,6 +15,7 @@ anim_projectile5: spr.Frames = {tex_pos_projectile[:5], {16, 16}}
 
 // Templates - require assigned texture
 prefab_bullet1: Projectile = {
+    texture_asset = assets.TEXTURE_BULLET,
     state = {
         lifetime = 0.5,
     },
@@ -38,6 +40,7 @@ prefab_bullet1: Projectile = {
 }
 
 prefab_bite: Projectile = {
+    texture_asset = assets.TEXTURE_BITE,
     state = {
         lifetime = 0.42,
     },

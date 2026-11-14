@@ -3,6 +3,7 @@ package weapon
 import spr "../sprite"
 import "../projectile"
 import "../sfx"
+import "../assets"
 // import spr_glue "../sprite/karl2d"
 import karl2d "../karl2d"
 import "core:math"
@@ -33,6 +34,7 @@ prefab_shotgun: Weapon = {
     visible = true,
     tint = karl2d.WHITE,
     name = "Shotgun",
+    texture_asset = assets.TEXTURE_SHOTGUN,
 }
 
 

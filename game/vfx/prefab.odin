@@ -2,6 +2,7 @@ package vfx
 
 import karl2d "../karl2d"
 import spr "../sprite"
+import "../assets"
 // import spr_glue "../sprite/karl2d"
 
 // Default projectile "Animation"
@@ -22,4 +23,5 @@ prefab_impact:Vfx = {
     visible = true,
     tint = karl2d.WHITE,
     is_foreground = true,
+    texture_asset = assets.TEXTURE_IMPACT,
 }

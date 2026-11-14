@@ -7,6 +7,10 @@ import "core:fmt"
 import state "game_state"
 import screen "game_screens"
 import "window"
+import "actor"
+import "assets"
+import "scene"
+import scene_glue "scene/karl2d"
 // import "core:math"
 // import viewport "viewport_rect"
 // import "core:math/linalg"
@@ -44,15 +48,16 @@ game_shutdown :: proc() {
 	karl2d.shutdown()
 }
 
-// Finish the running screen once. Clearing it makes a second call (restart, shutdown) harmless
+// Finish the running scene once (its finit, its listeners and its memory). A second call (restart, shutdown) finds nothing to do
 @(private="file")
 release_screen :: proc() {
-	if state.current.finit != nil {state.current.finit()}
-	state.current = {}
+	if g != nil {
+		scene.SceneRelease(&g.scene_system)
+	}
 }
 
-// Hot reload: the old DLL owns the resources of the running screen (its globals, audio, textures), so it has to release them
-// before its code is left behind
+// Hot reload: the old DLL owns what the running scene holds in its globals and its listeners, so it has to release them
+// before its code is left behind. Loaded assets and the scene ids stay in the game memory
 @export
 game_release_screen :: proc() {
 	release_screen()
@@ -72,15 +77,25 @@ game_init_state :: proc(k2_state: ^karl2d.State, allocator: runtime.Allocator) {
 	g.game_height = 270
 	g.background_color = karl2d.WHITE
 
+	// Assets: a table of data that is loaded in the background. Scenes say what they need, the system loads it behind a transition
+	// when a scene was not predicted and prefetches the assets of the scenes that are likely to come next
+	g.placeholder = scene_glue.PlaceholderTexture()
+	assets.Bind(&g.scene_system.assets, g.placeholder)
+	scene.SceneSystemInit(&g.scene_system, {scene_memory = g.scene_memory[:]}, screen.List(), assets.defs[:], scene_glue.loaders[:], &g.asset_storage)
+	actor.RegisterPrefabs(&g.scene_system)
+
 	// STARTING SCREEN
-	screen.Set(.Title)
+	screen.Start()
 }
 
 @export
 game_destroy_state :: proc() {
-	release_screen()
+	scene.SceneShutdown(&g.scene_system)
+	scene_glue.DestroyPlaceholderTexture(g.placeholder)
 	state.g = nil
-	free(g, g.allocator)
+	allocator: runtime.Allocator = g.allocator
+	free(g, allocator)
+	g = nil
 }
 
 
@@ -94,11 +109,13 @@ game_update :: proc() -> bool {
 	window.process_events(events)
 
 	g.counter += 1
-	if state.current.update != nil {state.current.update()}
+	// loads a few assets, runs the transition and the update of the scene
+	scene.SceneUpdate(&g.scene_system, karl2d.get_frame_time())
 
 	karl2d.clear(g.background_color)
-	if state.current.draw != nil {state.current.draw()}
-	if state.current.gui != nil {state.current.gui()}
+	scene.SceneDraw(&g.scene_system)
+	scene.SceneGui(&g.scene_system)
+	scene_glue.DrawTransition(&g.scene_system, window.get_window_size())
 	karl2d.present()
 
 	free_all(context.temp_allocator)
@@ -107,7 +124,6 @@ game_update :: proc() -> bool {
 
 @export	
 game_memory :: proc() -> ^Game_Memory {
-	// TODO: exit state.current ???
 	// TODO: Save game
 	return g
 }
@@ -139,13 +155,13 @@ hash_layout :: proc(hash: ^u64, info: ^runtime.Type_Info) {
 	base := runtime.type_info_base(info)
 	hash_bytes(hash, fmt.tprintf("%v|%d|", info.id, info.size))
 	#partial switch v in base.variant {
-	case runtime.Type_Info_Struct:
+	case ^runtime.Type_Info_Struct:
 		for i in 0 ..< int(v.field_count) {
 			hash_bytes(hash, v.names[i])
 			hash_bytes(hash, fmt.tprintf("@%d:", v.offsets[i]))
 			hash_layout(hash, v.types[i])
 		}
-	case runtime.Type_Info_Array:
+	case ^runtime.Type_Info_Array:
 		hash_bytes(hash, fmt.tprintf("[%d]", v.count))
 		hash_layout(hash, v.elem)
 	}
@@ -160,7 +176,8 @@ Debug_Info :: struct {
 @export
 game_debug_info :: proc() -> Debug_Info {
 	if g == nil {return {}}
-	return {screen = g.game_screen, counter = int(g.counter)}
+	current: int = int(g.scene_system.current) if g.scene_system.has_current else -1
+	return {screen = current, counter = int(g.counter)}
 }
 
 @export
@@ -173,7 +190,10 @@ game_hot_reloaded :: proc(memory: ^Game_Memory, k2_state: ^karl2d.State) {
 	karl2d.set_internal_state(k2_state)
 	g = memory
 	state.g = g
-	screen.Set(cast(screen.Screens)g.game_screen)
+	// The new code has its own tables. The memory (loaded assets, which scene runs) is the old one
+	assets.Bind(&g.scene_system.assets, g.placeholder)
+	scene.SceneRebind(&g.scene_system, screen.List(), assets.defs[:], scene_glue.loaders[:])
+	scene.SceneResume(&g.scene_system)
 }
 
 @export

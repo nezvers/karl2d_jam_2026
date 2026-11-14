@@ -2,19 +2,21 @@
 package game_screens
 
 import state "../game_state"
+import "../scene"
 import karl2d "../karl2d"
 import "../window"
 import "../ui"
 import "../input"
 
 @(private="package")
-screen_title_state: state.GameState = {
-    init,
-    finit,
-    process,
-    draw,
-    gui,
-    "Title",
+screen_title_def: scene.SceneDef = {
+    name = "Title",
+    init = init,
+    finit = finit,
+    update = process,
+    draw = draw,
+    gui = gui,
+    next = {scene.SceneId(Screens.Main_Menu)},     // likely next: its assets start loading in the background
 }
 
 TITLE :: "Hellope!"

@@ -7,6 +7,8 @@ import "core:math/rand"
 import "../cool_math"
 import "../vfx"
 import "../sfx"
+import "../assets"
+import "../scene"
 // import "core:math"
 
 vec2 :: [2]f32
@@ -34,6 +36,7 @@ Projectile :: struct {
     vfx_impact: ^vfx.Vfx,
     sfx_impact: ^sfx.SfxKarl2D,
     id:int,
+    texture_asset: scene.AssetId,
 }
 
 MAX_PROJECTILES :: 512
@@ -90,6 +93,7 @@ UpdateInstance :: proc(projectile: ^Projectile, delta_time: f32) {
 Draw :: proc() {
     active_pool: = projectile_pool[:projectile_count]
     for &projectile in active_pool {
+        if projectile.texture_asset != scene.ASSET_NONE { projectile.texture = assets.Texture(projectile.texture_asset) }
         spr_glue.DrawSprite(&projectile.sprite, projectile.texture, projectile.tint)
     }
 }
