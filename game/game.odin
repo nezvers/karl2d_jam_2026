@@ -87,8 +87,56 @@ game_init_state :: proc(k2_state: ^karl2d.State, allocator: runtime.Allocator) {
 	sfx.Bind(g.sfx_states[:])
 	actor.RegisterPrefabs(&g.scene_system)
 
-	// STARTING SCREEN
-	screen.Start()
+	// STARTING SCREEN: the one the player was on when the memory had to be rebuilt (restart, a reload that changed the memory)
+	if restore_screen >= 0 {
+		screen.StartAt(cast(screen.Screens)restore_screen)
+		g.notice = restore_notice
+	} else {
+		screen.Start()
+	}
+	restore_screen = -1
+	restore_notice = 0
+}
+
+NOTICE_RELOADED :: 1
+NOTICE_RESTARTED :: 2
+NOTICE_SECONDS :: 2.0
+
+// Set by the exe before game_init_state, and kept in the DLL: the new memory has nothing to remember it with
+restore_screen: int = -1
+restore_notice: u8
+
+// The screen that is running, or the one it is going to. -1 when there is none
+@export
+game_current_screen :: proc() -> int {
+	if g == nil { return -1 }
+	if g.scene_system.transition.phase != .NONE { return int(g.scene_system.target) }
+	return int(g.scene_system.current) if g.scene_system.has_current else -1
+}
+
+// The next game_init_state starts on this screen and shows the notice (NOTICE_*, 0 for none)
+@export
+game_set_restore :: proc(screen_index: int, notice: int) {
+	restore_screen = screen_index
+	restore_notice = u8(notice)
+}
+
+// A label in the corner that fades out: tells that a reload or restart did happen
+draw_notice :: proc(delta_time: f32) {
+	if g.notice == 0 { return }
+	g.notice_time += delta_time
+	if g.notice_time >= NOTICE_SECONDS {
+		g.notice = 0
+		g.notice_time = 0
+		return
+	}
+	text: string = "Code reloaded" if g.notice == NOTICE_RELOADED else "Restarted"
+	// full for the first second, then fades
+	alpha: f32 = clamp((NOTICE_SECONDS - g.notice_time) / (NOTICE_SECONDS - 1.0), 0, 1)
+	size: f32 = window.get_window_size().y * 0.04
+	color: karl2d.Color = karl2d.DARK_GREEN
+	color.a = u8(alpha * 255)
+	karl2d.draw_text(text, {size * 0.5, size * 0.5}, size, color)
 }
 
 @export
@@ -119,6 +167,7 @@ game_update :: proc() -> bool {
 	scene.SceneDraw(&g.scene_system)
 	scene.SceneGui(&g.scene_system)
 	scene_glue.DrawTransition(&g.scene_system, window.get_window_size())
+	draw_notice(karl2d.get_frame_time())
 	karl2d.present()
 
 	free_all(context.temp_allocator)
@@ -198,6 +247,8 @@ game_hot_reloaded :: proc(memory: ^Game_Memory, k2_state: ^karl2d.State) {
 	sfx.Bind(g.sfx_states[:])
 	scene.SceneRebind(&g.scene_system, screen.List(), assets.defs[:], scene_glue.loaders[:])
 	scene.SceneResume(&g.scene_system)
+	g.notice = NOTICE_RELOADED
+	g.notice_time = 0
 }
 
 @export

@@ -27,6 +27,11 @@ Start :: proc() {
     scene.SceneStart(&state.g.scene_system, scene.SceneId(Screens.Title))
 }
 
+// Start on a given scene instead of the first one: a restart that keeps the screen the player was on
+StartAt :: proc(index: Screens) {
+    scene.SceneStart(&state.g.scene_system, scene.SceneId(index))
+}
+
 // Go to a scene: at once when it is loaded already, else behind a transition
 Set :: proc(index:Screens) {
     scene.SceneGoto(&state.g.scene_system, scene.SceneId(index))

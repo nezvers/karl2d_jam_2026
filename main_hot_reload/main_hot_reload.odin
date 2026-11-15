@@ -34,6 +34,10 @@ copy_dll :: proc(to: string) -> bool {
 	return true
 }
 
+// Messages the game shows in the corner, same numbers as in game.odin
+NOTICE_RELOADED :: 1
+NOTICE_RESTARTED :: 2
+
 Debug_Info :: struct {
 	screen: int,
 	counter: int,
@@ -54,6 +58,8 @@ Game_API :: struct {
 	memory_layout: proc() -> u64,
 	debug_info: proc() -> Debug_Info,
 	debug_set_screen: proc(index: int),
+	current_screen: proc() -> int,
+	set_restore: proc(screen_index: int, notice: int),
 	modification_time: time.Time,
 	api_version: int,
 }
@@ -120,6 +126,8 @@ switch_game_api :: proc(old, new: Game_API, k2_state: rawptr, old_game_apis: ^[d
 		old.release_screen()
 		new.hot_reloaded(game_memory, k2_state)
 	} else {
+		// the memory is new, the screen the player was on is not
+		new.set_restore(old.current_screen(), NOTICE_RELOADED)
 		old.destroy_state()
 		new.init_state(k2_state, context.allocator)
 	}
@@ -188,6 +196,7 @@ main :: proc() {
 			}
 		}
 		if restart_requested {
+			game_api.set_restore(game_api.current_screen(), NOTICE_RESTARTED)
 			game_api.destroy_state()
 			game_api.init_state(k2_state, context.allocator)
 		}

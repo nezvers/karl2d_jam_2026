@@ -38,6 +38,8 @@ Game_Memory :: struct {
 	scene_memory: [SCENE_MEMORY_SIZE]byte,
 	decode_memory: [DECODE_MEMORY_SIZE]byte,
 	sfx_states: [sfx.COUNT]sound_effects.SoundState,    // pitch and last trigger of each sound effect, the settings are constant data in sfx
+	notice: u8,            // which message is fading in the corner, see game.odin (0: none)
+	notice_time: f32,      // seconds since it appeared
 	placeholder: scene.AssetValue,    // texture shown until a texture asset is loaded
 }
 

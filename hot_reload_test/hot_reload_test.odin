@@ -138,9 +138,10 @@ main :: proc() {
 	before, _ = wait_for(at_gameplay)
 	install("pad")
 	size_changed, size_ok := wait_for(proc(s: Status) -> bool {return s.version == 2})
+	size_screen, _ := wait_for(at_gameplay)
 	check(size_ok, "reload with another memory size is picked up")
 	check(size_changed.counter < before.counter, "size change: memory is new (counter %d -> %d)", before.counter, size_changed.counter)
-	check(size_changed.screen == 0, "size change: game starts again from the title screen (screen %d)", size_changed.screen)
+	check(size_screen.screen == 2, "size change: the screen the player was on is started again (screen %d)", size_screen.screen)
 
 	// 3. Same size, other type: must not be read as if nothing changed
 	install("base")                                                                       // the size changed above, start the comparison from the base build
@@ -150,16 +151,17 @@ main :: proc() {
 	before, _ = wait_for(at_gameplay)
 	install("layout")
 	layout_changed, layout_ok := wait_for(proc(s: Status) -> bool {return s.version == 4})
+	layout_screen, _ := wait_for(at_gameplay)
 	check(layout_ok, "reload with another layout of the same size is picked up")
 	check(layout_changed.counter < before.counter, "same size, other layout: memory is new, the old bytes are not reused (counter %d -> %d)", before.counter, layout_changed.counter)
-	check(layout_changed.screen == 0, "same size, other layout: starts from the title screen (screen %d)", layout_changed.screen)
+	check(layout_screen.screen == 2, "same size, other layout: the screen the player was on is started again (screen %d)", layout_screen.screen)
 
 	// 4. Restart key while on gameplay
 	command("gameplay")
 	before, _ = wait_for(at_gameplay)
 	command("restart")
-	restarted, restarted_ok := wait_for(proc(s: Status) -> bool {return s.version == 4 && s.counter < 15 && s.screen == 0})
-	check(restarted_ok, "restart: memory and screen start over (counter %d)", restarted.counter)
+	restarted, restarted_ok := wait_for(proc(s: Status) -> bool {return s.version == 4 && s.counter < 15 && s.screen == 2})
+	check(restarted_ok, "restart: memory starts over on the same screen (counter %d)", restarted.counter)
 
 	// 5. The build is still writing the DLL: the exe must keep running and take the finished DLL later
 	command("gameplay")
