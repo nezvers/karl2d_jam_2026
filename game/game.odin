@@ -8,6 +8,8 @@ import state "game_state"
 import screen "game_screens"
 import "window"
 import "actor"
+import "projectile"
+import "vfx"
 import "assets"
 import "sfx"
 import "scene"
@@ -84,7 +86,7 @@ game_init_state :: proc(k2_state: ^karl2d.State, allocator: runtime.Allocator) {
 	g.placeholder = scene_glue.PlaceholderTexture()
 	assets.Bind(&g.scene_system.assets, g.placeholder)
 	scene.SceneSystemInit(&g.scene_system, {scene_memory = g.scene_memory[:], decode_memory = g.decode_memory[:], allocator = allocator}, screen.List(), assets.defs[:], scene_glue.loaders[:], &g.asset_storage)
-	sfx.Bind(g.sfx_states[:])
+	bind_game_memory()
 	actor.RegisterPrefabs(&g.scene_system)
 
 	// STARTING SCREEN: the one the player was on when the memory had to be rebuilt (restart, a reload that changed the memory)
@@ -100,11 +102,20 @@ game_init_state :: proc(k2_state: ^karl2d.State, allocator: runtime.Allocator) {
 
 NOTICE_RELOADED :: 1
 NOTICE_RESTARTED :: 2
+NOTICE_RECREATED :: 3
 NOTICE_SECONDS :: 2.0
 
 // Set by the exe before game_init_state, and kept in the DLL: the new memory has nothing to remember it with
 restore_screen: int = -1
 restore_notice: u8
+
+// The code has its own copy of every global: point the packages at the data in the game memory
+bind_game_memory :: proc() {
+	sfx.Bind(g.sfx_states[:])
+	actor.Bind(&g.actors)
+	projectile.Bind(&g.projectiles)
+	vfx.Bind(&g.effects)
+}
 
 // The screen that is running, or the one it is going to. -1 when there is none
 @export
@@ -130,7 +141,9 @@ draw_notice :: proc(delta_time: f32) {
 		g.notice_time = 0
 		return
 	}
-	text: string = "Code reloaded" if g.notice == NOTICE_RELOADED else "Restarted"
+	text: string = "Restarted"
+	if g.notice == NOTICE_RELOADED { text = "Code reloaded" }
+	if g.notice == NOTICE_RECREATED { text = "State recreated" }
 	// full for the first second, then fades
 	alpha: f32 = clamp((NOTICE_SECONDS - g.notice_time) / (NOTICE_SECONDS - 1.0), 0, 1)
 	size: f32 = window.get_window_size().y * 0.04
@@ -222,6 +235,7 @@ hash_layout :: proc(hash: ^u64, info: ^runtime.Type_Info) {
 Debug_Info :: struct {
 	screen: int,
 	counter: int,
+	gameplay_frames: int,
 }
 
 // For the hot reload test
@@ -229,7 +243,7 @@ Debug_Info :: struct {
 game_debug_info :: proc() -> Debug_Info {
 	if g == nil {return {}}
 	current: int = int(g.scene_system.current) if g.scene_system.has_current else -1
-	return {screen = current, counter = int(g.counter)}
+	return {screen = current, counter = int(g.counter), gameplay_frames = g.gameplay_frames}
 }
 
 @export
@@ -244,14 +258,18 @@ game_hot_reloaded :: proc(memory: ^Game_Memory, k2_state: ^karl2d.State) {
 	state.g = g
 	// The new code has its own tables. The memory (loaded assets, which scene runs) is the old one
 	assets.Bind(&g.scene_system.assets, g.placeholder)
-	sfx.Bind(g.sfx_states[:])
+	bind_game_memory()
 	scene.SceneRebind(&g.scene_system, screen.List(), assets.defs[:], scene_glue.loaders[:])
 	scene.SceneResume(&g.scene_system)
-	g.notice = NOTICE_RELOADED
+	g.notice = restore_notice if restore_notice != 0 else NOTICE_RELOADED
+	restore_notice = 0
 	g.notice_time = 0
 }
 
+// 0: nothing. 1: F6, release the screen and start it again on the same memory (the game continues where it was).
+// 2: Shift + F6, throw the memory away and start over on the same screen
 @export
-game_force_restart :: proc() -> bool {
-	return karl2d.key_went_down(.F6)
+game_force_restart :: proc() -> int {
+	if !karl2d.key_went_down(.F6) { return 0 }
+	return 2 if karl2d.key_is_held(.Left_Shift) || karl2d.key_is_held(.Right_Shift) else 1
 }

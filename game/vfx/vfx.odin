@@ -17,34 +17,42 @@ Vfx :: struct {
 }
 
 MAX_VFX :: 512
-background_pool: [MAX_VFX]Vfx
-foreground_pool: [MAX_VFX]Vfx
-bg_count:int
-fg_count:int
+// Data in the game memory, the package works on the pool it is bound to
+Pool :: struct {
+    background: [MAX_VFX]Vfx,
+    foreground: [MAX_VFX]Vfx,
+    bg_count: int,
+    fg_count: int,
+}
+pool: ^Pool
+
+Bind :: proc(effects: ^Pool) {
+    pool = effects
+}
 
 
 Reset :: proc() {
-    bg_count = 0
-    fg_count = 0
+    pool.bg_count = 0
+    pool.fg_count = 0
 }
 
 GetNewBg :: proc(preset: Vfx)->(vfx: ^Vfx, ok:bool) {
-    if bg_count == MAX_VFX { return }
-    vfx = &background_pool[bg_count]
+    if pool.bg_count == MAX_VFX { return }
+    vfx = &pool.background[pool.bg_count]
     vfx^ = preset
-    vfx.id = bg_count
+    vfx.id = pool.bg_count
     ok = true
-    bg_count += 1
+    pool.bg_count += 1
     return
 }
 
 GetNewFg :: proc(preset: Vfx)->(inst: ^Vfx, ok:bool) {
-    if fg_count == MAX_VFX { return }
-    inst = &foreground_pool[fg_count]
+    if pool.fg_count == MAX_VFX { return }
+    inst = &pool.foreground[pool.fg_count]
     inst^ = preset
-    inst.id = fg_count
+    inst.id = pool.fg_count
     ok = true
-    fg_count += 1
+    pool.fg_count += 1
     return
 }
 
@@ -69,55 +77,55 @@ Remove :: proc(inst: ^Vfx) {
 }
 
 RemoveBG :: proc(inst: ^Vfx){
-    if inst.id >= bg_count { return }
-    if inst.id != background_pool[inst.id].id { return }
-    if bg_count == 0 { return }
-    if inst.id == bg_count - 1 {
-        bg_count -= 1
+    if inst.id >= pool.bg_count { return }
+    if inst.id != pool.background[inst.id].id { return }
+    if pool.bg_count == 0 { return }
+    if inst.id == pool.bg_count - 1 {
+        pool.bg_count -= 1
         return
     }
-    new_inst: ^Vfx = &background_pool[bg_count - 1]
+    new_inst: ^Vfx = &pool.background[pool.bg_count - 1]
     new_inst.id = inst.id
-    background_pool[inst.id] = new_inst^
-    bg_count -= 1
+    pool.background[inst.id] = new_inst^
+    pool.bg_count -= 1
 }
 
 RemoveFG :: proc(inst: ^Vfx){
-    if inst.id >= fg_count { return }
-    if inst.id != foreground_pool[inst.id].id { return }
-    if fg_count == 0 { return }
-    if inst.id == fg_count - 1 {
-        fg_count -= 1
+    if inst.id >= pool.fg_count { return }
+    if inst.id != pool.foreground[inst.id].id { return }
+    if pool.fg_count == 0 { return }
+    if inst.id == pool.fg_count - 1 {
+        pool.fg_count -= 1
         return
     }
-    new_inst: ^Vfx = &foreground_pool[fg_count - 1]
+    new_inst: ^Vfx = &pool.foreground[pool.fg_count - 1]
     new_inst.id = inst.id
-    foreground_pool[inst.id] = new_inst^
-    fg_count -= 1
+    pool.foreground[inst.id] = new_inst^
+    pool.fg_count -= 1
 }
 
 Update :: proc(delta_time:f32) {
-    for i:int = fg_count - 1; i > -1; i -= 1 {
-        if !spr.AnimatorUpdateOnce(animations.List(), &foreground_pool[i].sprite.animator, delta_time) { continue }
-        RemoveFG(&foreground_pool[i])
+    for i:int = pool.fg_count - 1; i > -1; i -= 1 {
+        if !spr.AnimatorUpdateOnce(animations.List(), &pool.foreground[i].sprite.animator, delta_time) { continue }
+        RemoveFG(&pool.foreground[i])
     }
 
-    for i:int = bg_count - 1; i > -1; i -= 1 {
-        if !spr.AnimatorUpdateOnce(animations.List(), &background_pool[i].sprite.animator, delta_time) { continue }
-        RemoveBG(&background_pool[i])
+    for i:int = pool.bg_count - 1; i > -1; i -= 1 {
+        if !spr.AnimatorUpdateOnce(animations.List(), &pool.background[i].sprite.animator, delta_time) { continue }
+        RemoveBG(&pool.background[i])
     }
 }
 
 DrawBackground :: proc() {
-    for i:int = bg_count - 1; i > -1; i -= 1 {
-        vfx: ^Vfx = &background_pool[i]
+    for i:int = pool.bg_count - 1; i > -1; i -= 1 {
+        vfx: ^Vfx = &pool.background[i]
         DrawInstance(vfx)
     }
 }
 
 DrawForeground :: proc() {
-    for i:int = fg_count - 1; i > -1; i -= 1 {
-        vfx: ^Vfx = &foreground_pool[i]
+    for i:int = pool.fg_count - 1; i > -1; i -= 1 {
+        vfx: ^Vfx = &pool.foreground[i]
         DrawInstance(vfx)
     }
 }

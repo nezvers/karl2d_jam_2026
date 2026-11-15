@@ -3,6 +3,9 @@ package game_state
 import "base:runtime"
 import "../assets"
 import "../scene"
+import "../actor"
+import "../projectile"
+import "../vfx"
 import "../sfx"
 import "../sound_effects"
 
@@ -31,6 +34,15 @@ Game_Memory :: struct {
 	view_rect: Rect,
 	projected_rect: Rect,
 	game_texture: Render_Texture, // TODO: solve render texture with camera
+
+	// What the gameplay holds: plain data, a hot reload that keeps the memory continues the game where it was
+	actors: actor.Pool,
+	projectiles: projectile.Pool,
+	effects: vfx.Pool,
+	kill_count: u64,
+	gameplay_frames: int,   // frames since the gameplay started: a hot reload has to keep counting, a new run starts at 0
+	player_index: int,      // places in actors.buffer
+	npc_index: int,
 
 	// Scenes and assets. Plain data, so it survives a hot reload: scenes are ids and the code is looked up again
 	scene_system: scene.SceneSystem,

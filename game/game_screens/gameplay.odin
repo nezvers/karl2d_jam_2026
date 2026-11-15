@@ -27,6 +27,7 @@ import scene_glue "../scene/karl2d"
 screen_game_def: scene.SceneDef = {
     name = "Gameplay",
     init = init,
+    resume = resume,
     finit = finit,
     update = process,
     draw = draw,
@@ -47,16 +48,15 @@ npc_actor: ^actor.Actor
 music:karl2d.Audio_Stream
 music_ready: bool
 
-@(private="package")
-kill_count:u64
-
 init :: proc() {
-    kill_count = 0
+    state.g.kill_count = 0
+    state.g.gameplay_frames = 0
     state.g.background_color.r = 0xcf
     state.g.background_color.g = 0x96
     state.g.background_color.b = 0x8c
     // The assets are loaded by the scene system, this scene required them. Resets the pools
     projectile.Reset()
+    vfx.Reset()
     actor.ResolvePrefabs()
     actor.Reset()
 
@@ -64,16 +64,34 @@ init :: proc() {
     // Spawn players
     actor_new, ok: = actor.NewInstance(actor.prefab_plumber, {})
     if ok {
-        player_actor = actor_new
+        state.g.player_index = actor_new.id
     }
     actor_new, ok = actor.NewInstance(actor.prefab_electrician, {30,30})
     if ok {
-        npc_actor = actor_new
+        state.g.npc_index = actor_new.id
         actor_new.weapon = weapon.SHOTGUN
     }
 
     enemies.Start()
+    bind_players()
+    listen_music()
+}
 
+// After a hot reload: the actors, projectiles and effects are in the game memory as they were. Only what lives in the code is
+// set again: the procs, the pointers to the two players, the listener of the music
+resume :: proc() {
+    actor.ResolvePrefabs()      // the tuning of the new code applies to what is spawned from now on
+    enemies.Bind()
+    bind_players()
+    listen_music()
+}
+
+bind_players :: proc() {
+    player_actor = &actor.pool.buffer[state.g.player_index]
+    npc_actor = &actor.pool.buffer[state.g.npc_index]
+}
+
+listen_music :: proc() {
     // The music is optional: it starts when it has loaded, right now if it was prefetched. The listener follows this run of the scene
     music_ready = false
     scene.Listen(&state.g.scene_system, .ASSET_READY, u32(assets.MUSIC_DEEPER_DUNGEON), on_music_ready, nil, true, scene.SceneCurrentInstance(&state.g.scene_system))
@@ -101,6 +119,7 @@ process :: proc() {
     if music_ready { karl2d.update_audio_stream(music) }
 
     delta_time: f32 = karl2d.get_frame_time()
+    state.g.gameplay_frames += 1
 
     update_player()
     // TODO: update enemies
@@ -110,10 +129,10 @@ process :: proc() {
 
     // TODO: refactor out collision logic
 
-    for i:int = (projectile.projectile_count - 1); i > -1; i -= 1 {
-        proj:^projectile.Projectile = &projectile.projectile_pool[i]
-        for a:int = (actor.actor_count - 1); a > -1; a -= 1 {
-            act:^actor.Actor = &actor.actor_buffer[a]
+    for i:int = (projectile.pool.count - 1); i > -1; i -= 1 {
+        proj:^projectile.Projectile = &projectile.pool.buffer[i]
+        for a:int = (actor.pool.count - 1); a > -1; a -= 1 {
+            act:^actor.Actor = &actor.pool.buffer[a]
             if (cast(u32)act.type & proj.collide) == 0 { continue }
 
             if cool_math.Vec2Mag2(act.position - proj.position) < 9 {
@@ -123,7 +142,7 @@ process :: proc() {
                         Set(.Main_Menu)
                     } else {
                         actor.Remove(act)
-                        kill_count += 1
+                        state.g.kill_count += 1
                     }
                     // TODO: death VFX
                 } else {
@@ -168,7 +187,7 @@ draw :: proc() {
 gui :: proc() {
     window_size: = window.get_window_size()
     score_size:f32 = window_size.y * 0.07
-    score_text:string = fmt.tprintf("KILL COUNT: %v", kill_count)
+    score_text:string = fmt.tprintf("KILL COUNT: %v", state.g.kill_count)
     score_measure:Vec2 = karl2d.measure_text(score_text, score_size, karl2d.FONT_DEFAULT)
     score_position:Vec2 = ui.GetElementPosition({0,0,window_size.x, window_size.y}, score_measure, {0.001, 0.001}, {0,0})
 	karl2d.draw_text(score_text, score_position, score_size, karl2d.DARK_BLUE)

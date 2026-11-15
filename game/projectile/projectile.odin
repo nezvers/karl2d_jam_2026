@@ -41,41 +41,49 @@ Projectile :: struct {
 }
 
 MAX_PROJECTILES :: 512
-projectile_pool: [MAX_PROJECTILES]Projectile
-projectile_count:int
+// Data in the game memory, the package works on the pool it is bound to
+Pool :: struct {
+    buffer: [MAX_PROJECTILES]Projectile,
+    count: int,
+}
+pool: ^Pool
+
+Bind :: proc(projectiles: ^Pool) {
+    pool = projectiles
+}
 
 
 Reset :: proc() {
-    projectile_count = 0
+    pool.count = 0
 }
 
 GetNew :: proc(preset: Projectile)->(projectile: ^Projectile, ok:bool) {
-    if projectile_count == MAX_PROJECTILES { return }
-    projectile = &projectile_pool[projectile_count]
+    if pool.count == MAX_PROJECTILES { return }
+    projectile = &pool.buffer[pool.count]
     projectile^ = preset
-    projectile.id = projectile_count
+    projectile.id = pool.count
     ok = true
-    projectile_count += 1
+    pool.count += 1
     return
 }
 
 Remove :: proc(projectile: ^Projectile) {
-    if projectile.id >= projectile_count { return }
-    if projectile.id != projectile_pool[projectile.id].id { return }
-    if projectile_count == 0 { return }
-    if projectile.id == projectile_count - 1 {
-        projectile_count -= 1
+    if projectile.id >= pool.count { return }
+    if projectile.id != pool.buffer[projectile.id].id { return }
+    if pool.count == 0 { return }
+    if projectile.id == pool.count - 1 {
+        pool.count -= 1
         return
     }
-    new_projectile: ^Projectile = &projectile_pool[projectile_count - 1]
+    new_projectile: ^Projectile = &pool.buffer[pool.count - 1]
     new_projectile.id = projectile.id
-    projectile_pool[projectile.id] = new_projectile^
-    projectile_count -= 1
+    pool.buffer[projectile.id] = new_projectile^
+    pool.count -= 1
 }
 
 Update :: proc(delta_time: f32) {
-    for i:int = projectile_count - 1; i > -1; i -= 1 {
-        UpdateInstance(&projectile_pool[i], delta_time)
+    for i:int = pool.count - 1; i > -1; i -= 1 {
+        UpdateInstance(&pool.buffer[i], delta_time)
     }
 }
 
@@ -92,7 +100,7 @@ UpdateInstance :: proc(projectile: ^Projectile, delta_time: f32) {
 }
 
 Draw :: proc() {
-    active_pool: = projectile_pool[:projectile_count]
+    active_pool: = pool.buffer[:pool.count]
     for &projectile in active_pool {
         if projectile.texture_asset != scene.ASSET_NONE { projectile.texture = assets.Texture(projectile.texture_asset) }
         spr_glue.DrawSheetSprite(animations.List(), &projectile.sprite, projectile.texture, projectile.tint)

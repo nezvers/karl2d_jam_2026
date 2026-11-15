@@ -18,7 +18,7 @@ EXE :: DIR + "/hot_reload_test.exe"
 OUTPUT :: DIR + "/output.txt"
 
 Status :: struct {
-	frame, version, screen, counter: int,
+	frame, version, screen, counter, run: int,
 	valid: bool,
 }
 
@@ -62,6 +62,7 @@ status :: proc() -> (result: Status) {
 			case "version": parsed.version = number
 			case "screen": parsed.screen = number
 			case "counter": parsed.counter = number
+			case "run": parsed.run = number
 			}
 		}
 		parsed.valid = true
@@ -133,6 +134,7 @@ main :: proc() {
 	check(same_ok, "reload with the same memory layout is picked up")
 	check(same.counter >= before.counter, "same layout: game memory is kept (counter %d -> %d)", before.counter, same.counter)
 	check(same.screen == 2, "same layout: the screen stays on gameplay (screen %d)", same.screen)
+	check(same.run >= before.run, "same layout: the gameplay continues, it is not started again (run %d -> %d)", before.run, same.run)
 
 	// 2. Another size: memory is rebuilt from scratch
 	before, _ = wait_for(at_gameplay)

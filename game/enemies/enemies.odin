@@ -14,21 +14,19 @@ vec2 :: [2]f32
 
 // MAX_ENEMIES :: 30
 START_ENEMY_COUNT :: 20
-active_trshold:int
 
-Reset :: proc() {
-    active_trshold = START_ENEMY_COUNT
-    // the callback lives here because this package imports actor, not the other way around
-    actor.prefab_zombie.update_callback = UpdateZombie
+// The procs of this package, given to the actors by number. Call it again after a hot reload: the table is a global of the code
+Bind :: proc() {
+    actor.update_procs[.Zombie] = UpdateZombie
 }
 
 Start :: proc() {
-    Reset()
+    Bind()
 }
 
 GetSpawnPoint :: proc()->vec2 {
     RANGE :: 200
-    center:vec2 = actor.actor_buffer[0].position
+    center:vec2 = actor.pool.buffer[0].position
     range:f32 = 100 + rand.float32() * RANGE
     angle:f32 = math.TAU * rand.float32()
     result:vec2 = center + cool_math.Vec2Rotate(vec2{1,0} * range, angle)
@@ -36,16 +34,16 @@ GetSpawnPoint :: proc()->vec2 {
 }
 
 Update :: proc(delta_time:f32) {
-    for i:int = actor.actor_count; i < (active_trshold + 2); i += 1 {
+    for i:int = actor.pool.count; i < (START_ENEMY_COUNT + 2); i += 1 {
         _, ok: = actor.NewInstance(actor.prefab_zombie, GetSpawnPoint())
         if !ok { continue }
     }
 }
 
 UpdateZombie :: proc(zombie: ^actor.Actor, delta_time: f32) {
-    nearest:^actor.Actor = &actor.actor_buffer[0]
+    nearest:^actor.Actor = &actor.pool.buffer[0]
     distance:vec2 = nearest.position - zombie.position
-    distance2:vec2 = actor.actor_buffer[1].position - zombie.position
+    distance2:vec2 = actor.pool.buffer[1].position - zombie.position
     mag2: = cool_math.Vec2Mag2(distance)
 
     if mag2 > (300 * 300){
@@ -54,7 +52,7 @@ UpdateZombie :: proc(zombie: ^actor.Actor, delta_time: f32) {
     }
 
     if mag2 > cool_math.Vec2Mag2(distance2) {
-        nearest = &actor.actor_buffer[1]
+        nearest = &actor.pool.buffer[1]
         distance = distance2
         mag2 = cool_math.Vec2Mag2(distance)
     }

@@ -37,10 +37,12 @@ copy_dll :: proc(to: string) -> bool {
 // Messages the game shows in the corner, same numbers as in game.odin
 NOTICE_RELOADED :: 1
 NOTICE_RESTARTED :: 2
+NOTICE_RECREATED :: 3
 
 Debug_Info :: struct {
 	screen: int,
 	counter: int,
+	gameplay_frames: int,
 }
 
 Game_API :: struct {
@@ -53,7 +55,7 @@ Game_API :: struct {
 	memory: proc() -> rawptr,
 	memory_size: proc() -> int,
 	hot_reloaded: proc(mem: rawptr, k2_state: rawptr),
-	force_restart: proc() -> bool,
+	force_restart: proc() -> int,
 	release_screen: proc(),
 	memory_layout: proc() -> u64,
 	debug_info: proc() -> Debug_Info,
@@ -182,18 +184,25 @@ main :: proc() {
 			}
 			if frame % 5 == 0 {
 				info := game_api.debug_info()
-				fmt.printfln("[HR] frame=%d version=%d screen=%d counter=%d", frame, game_api.api_version, info.screen, info.counter)
+				fmt.printfln("[HR] frame=%d version=%d screen=%d counter=%d run=%d", frame, game_api.api_version, info.screen, info.counter, info.gameplay_frames)
 			}
 			if os.exists(DLL_DIR + "/stop") {
 				break
 			}
 		}
-		restart_requested := game_api.force_restart()
+		restart := game_api.force_restart()
+		restart_requested := restart == 2
 		when HOT_RELOAD_TEST {
 			if os.exists(DLL_DIR + "/restart") {
 				os.remove(DLL_DIR + "/restart")
 				restart_requested = true
 			}
+		}
+		if restart == 1 {
+			// same memory, the code starts the screen again on it: the state is recreated, not lost
+			game_api.set_restore(-1, NOTICE_RECREATED)
+			game_api.release_screen()
+			game_api.hot_reloaded(game_api.memory(), k2_state)
 		}
 		if restart_requested {
 			game_api.set_restore(game_api.current_screen(), NOTICE_RESTARTED)

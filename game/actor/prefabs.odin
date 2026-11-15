@@ -33,9 +33,7 @@ def_character: scene.PrefabDef(Actor) = {
             value = 100,
         },
         damage_sound = sfx.DAMAGE,
-        spawn_callback = nil,
-        draw_callback = nil,
-        update_callback = UpdateCharacter, // TODO: each character its specialized update
+        update_kind = .Character, // TODO: each character its specialized update
         type = .Player,
     },
 }
@@ -50,7 +48,7 @@ def_electrician: scene.PrefabDef(Actor) = {
     base = &def_character,
     patches = {
         scene.PatchField(Actor, "texture_asset", assets.TEXTURE_ELECTRICIAN),
-        scene.PatchField(Actor, "draw_callback", DrawElectricianCallback),
+        scene.PatchField(Actor, "draw_kind", DrawKind.Electrician),
     },
     assets = {assets.TEXTURE_ELECTRICIAN},
 }
@@ -64,6 +62,7 @@ def_zombie: scene.PrefabDef(Actor) = {
         scene.PatchField(Actor, "damage_sound", sfx.NONE),
         scene.PatchField(Actor, "weapon", weapon.BITE),
         scene.PatchField(Actor, "type", ActorType.Enemy),
+        scene.PatchField(Actor, "update_kind", UpdateKind.Zombie),
     },
     assets = {assets.TEXTURE_ZOMBIE},
 }

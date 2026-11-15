@@ -37,7 +37,29 @@ State :: struct {
 Health :: struct {
     value: f32,
     timer: f32,
-    damage_callback: proc(^Actor),
+}
+
+// Behaviour is chosen by number, not by a proc pointer: a pointer into the code is wrong after a hot reload, a number is not
+UpdateKind :: enum u8 {
+    None,
+    Character,
+    Zombie,     // set by the enemies package, which imports this one (see enemies.Bind)
+}
+
+DrawKind :: enum u8 {
+    None,
+    Electrician,
+}
+
+update_procs: [UpdateKind]proc(^Actor, f32) = {
+    .None = nil,
+    .Character = UpdateCharacter,
+    .Zombie = nil,
+}
+
+draw_procs: [DrawKind]proc(^Actor) = {
+    .None = nil,
+    .Electrician = DrawElectricianCallback,
 }
 
 Actor :: struct {
@@ -46,9 +68,8 @@ Actor :: struct {
     using properties: Properties,
     using state: State,
     health: Health,
-    spawn_callback: proc(^Actor),
-    draw_callback: proc(^Actor),
-    update_callback: proc(^Actor, f32),
+    update_kind: UpdateKind,      // what the actor does each frame: a number, the procs are looked up in update_procs
+    draw_kind: DrawKind,
     type:ActorType,
     id:int,
     weapon: weapon.Id,            // a row of weapon.prefabs, not a pointer: the actor stays plain data
@@ -60,75 +81,81 @@ Actor :: struct {
 
 // Actor Pool
 MAX_ACTORS :: 32
-actor_buffer: [MAX_ACTORS]Actor
-actor_count: int
+// The actors are data in the game memory (a hot reload keeps them), the package works on the pool it is bound to
+Pool :: struct {
+    buffer: [MAX_ACTORS]Actor,
+    count: int,
+}
+pool: ^Pool
+
+Bind :: proc(actors: ^Pool) {
+    pool = actors
+}
 // For Y sorting
 sorted_list: [MAX_ACTORS]^Actor
 
 Reset :: proc() {
-    actor_count = 0
+    pool.count = 0
 }
 
 GetNew :: proc(preset:Actor)->(actor:^Actor, ok:bool) {
-    if actor_count >= len(actor_buffer) {
+    if pool.count >= len(pool.buffer) {
         return
     }
-    actor = &actor_buffer[actor_count]
-    // sorted_list[actor_count] = actor
+    actor = &pool.buffer[pool.count]
+    // sorted_list[pool.count] = actor
     actor^ = preset
-    actor.id = actor_count
-    actor_count += 1
+    actor.id = pool.count
+    pool.count += 1
     ok = true
     return
 }
 
 Remove :: proc(actor:^Actor) {
-    if actor.id >= actor_count { return }
-    if actor.id != actor_buffer[actor.id].id { return }
-    if actor_count == 0 { return }
-    if actor.id == actor_count - 1 {
-        actor_count -= 1
+    if actor.id >= pool.count { return }
+    if actor.id != pool.buffer[actor.id].id { return }
+    if pool.count == 0 { return }
+    if actor.id == pool.count - 1 {
+        pool.count -= 1
         return
     }
-    new_actor: ^Actor = &actor_buffer[actor_count - 1]
+    new_actor: ^Actor = &pool.buffer[pool.count - 1]
     new_actor.id = actor.id
     actor^ = new_actor^
-    actor_count -= 1
+    pool.count -= 1
 }
 
 NewInstance :: proc(preset:Actor, pos:vec2)->(actor:^Actor, ok:bool) {
     actor,ok = GetNew(preset)
     if !ok { return }
     actor.position = pos
-    if actor.spawn_callback != nil {actor.spawn_callback(actor)}
-    // TODO: spawn effect callback in actor
+    // TODO: spawn effect in actor
     return
 }
 
 Update :: proc(delta_time: f32) {
     actor:^Actor
 
-    for i:int = actor_count -1; i > -1; i -= 1 {
-        actor = &actor_buffer[i]
-        if actor.update_callback != nil {
-            actor.update_callback(actor, delta_time)
-        }
+    for i:int = pool.count -1; i > -1; i -= 1 {
+        actor = &pool.buffer[i]
+        update: proc(^Actor, f32) = update_procs[actor.update_kind]
+        if update != nil { update(actor, delta_time) }
     }
 }
 
 Draw :: proc() {
     // TODO: optimize with removal
-    for i:int = 0; i < actor_count; i += 1 {
-        sorted_list[i] = &actor_buffer[i]
+    for i:int = 0; i < pool.count; i += 1 {
+        sorted_list[i] = &pool.buffer[i]
     }
-    sort.quick_sort_proc(sorted_list[:actor_count], Ysort)
+    sort.quick_sort_proc(sorted_list[:pool.count], Ysort)
 
-    for i:int = 0; i < actor_count; i += 1 {
+    for i:int = 0; i < pool.count; i += 1 {
         actor:^Actor = sorted_list[i]
         if actor.texture_asset != scene.ASSET_NONE { actor.visuals.texture = assets.Texture(actor.texture_asset) }
         spr_glue.DrawSheetSpriteKarl2d(animations.List(), &actor.visuals)
-        if actor.draw_callback == nil { continue }
-        actor.draw_callback(actor)
+        draw: proc(^Actor) = draw_procs[actor.draw_kind]
+        if draw != nil { draw(actor) }
     }
 }
 
