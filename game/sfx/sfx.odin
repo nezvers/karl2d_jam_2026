@@ -8,6 +8,7 @@ package sfx
 // Playing an effect whose sound is not loaded yet does nothing, and does not use up its retrigger time.
 
 import "../assets"
+import "../perf"
 import "../karl2d"
 import "../scene"
 import scene_glue "../scene/karl2d"
@@ -73,7 +74,12 @@ Bind :: proc(states: []sound_effects.SoundState) {
 
 Play :: proc(id: Id) {
     if id == NONE { return }
+    when perf.PERF_TEST { perf.sfx_asked += 1 }
     clip, loaded := scene_glue.AudioClipOf(assets.store, sound_assets[id])
     if !loaded { return }       // not loaded yet: no sound, no crash, and the effect keeps its retrigger time
-    snd_glue.PlayBank(&bank, id, clip, karl2d.get_time())
+    when perf.PERF_TEST {
+        if snd_glue.PlayBank(&bank, id, clip, karl2d.get_time()) { perf.sfx_played += 1 }
+    } else {
+        snd_glue.PlayBank(&bank, id, clip, karl2d.get_time())
+    }
 }

@@ -2,6 +2,7 @@ package vfx
 
 import spr "../sprite"
 import "../animations"
+import "../perf"
 import spr_glue "../sprite/karl2d"
 import "../assets"
 import "../scene"
@@ -64,6 +65,7 @@ NewInstance :: proc(preset:Vfx, pos:vec2)->(inst:^Vfx, ok:bool) {
     }
     if !ok { return }
     inst.position = pos
+    when perf.PERF_TEST { perf.vfx_spawned += 1 }
 
     return
 }

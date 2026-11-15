@@ -18,6 +18,7 @@ import "../cool_math"
 import "../window"
 import state "../game_state"
 import "../scene"
+import "../perf"
 import scene_glue "../scene/karl2d"
 // import spr "../sprite"
 // import spr_glue "../sprite/karl2d"
@@ -136,7 +137,11 @@ process :: proc() {
             if (cast(u32)act.type & proj.collide) == 0 { continue }
 
             if cool_math.Vec2Mag2(act.position - proj.position) < 9 {
-                act.health.value -= proj.damage
+                when perf.PERF_TEST {
+                    if act != player_actor && act != npc_actor { act.health.value -= proj.damage }
+                } else {
+                    act.health.value -= proj.damage
+                }
                 if act.health.value <= 0 {
                     if act == player_actor || act == npc_actor {
                         Set(.Main_Menu)
@@ -207,6 +212,7 @@ update_player :: proc() {
     mouse_distance:Vec2 = mouse_position - (npc_actor.position + {0, -5})
     npc_actor.input.aim_dir = cool_math.Vec2Norm(mouse_distance)
     npc_actor.input.attack = karl2d.mouse_button_is_held(.Left)
+    when perf.PERF_TEST { perf_aim_at_nearest_enemy() }
 }
 
 get_player_direction :: proc()->Vec2 {
@@ -247,5 +253,19 @@ draw_rope :: proc(from, to: Vec2) {
         p1: Vec2 = cool_math.Vec2Lerp(a, cool_math.Vec2Lerp(c + {0, curve}, b, t1), t1)
         p2: Vec2 = cool_math.Vec2Lerp(a, cool_math.Vec2Lerp(c + {0, curve}, b, t2), t2)
         karl2d.draw_line(p1, p2, 1, karl2d.LIGHT_GRAY)
+    }
+}
+
+// TEMPORARY, see package perf: the second player shoots at the nearest zombie without stopping
+perf_aim_at_nearest_enemy :: proc() {
+    npc_actor.input.attack = true
+    best: f32 = 1e30
+    for i:int = 0; i < actor.pool.count; i += 1 {
+        other: ^actor.Actor = &actor.pool.buffer[i]
+        if other.type != .Enemy { continue }
+        distance: f32 = cool_math.Vec2Mag2(other.position - npc_actor.position)
+        if distance >= best { continue }
+        best = distance
+        npc_actor.input.aim_dir = cool_math.Vec2Norm(other.position - npc_actor.position)
     }
 }
