@@ -7,17 +7,11 @@ import "../scene"
 // import karl2d "../karl2d"
 import "../weapon"
 import "../sfx"
+import "../animations"
 import "core:sort"
 // import "core:math/rand"
 
 vec2 :: [2]f32
-ActorAnimations :: enum {
-    char_idle = 0,
-    char_walk = 1,
-    char_jump_up = 2,
-    char_jump_down = 3,
-}
-
 ActorType :: enum {
     Player =    1 << 0,
     Enemy =     1 << 2,
@@ -47,7 +41,7 @@ Health :: struct {
 }
 
 Actor :: struct {
-    using visuals: spr_glue.SpriteKarl2d,
+    using visuals: spr_glue.SheetSpriteKarl2d,
     using input: Input,
     using properties: Properties,
     using state: State,
@@ -57,8 +51,8 @@ Actor :: struct {
     update_callback: proc(^Actor, f32),
     type:ActorType,
     id:int,
-    weapon: ^weapon.Weapon,
-    damage_sound: ^sfx.SfxKarl2D,
+    weapon: weapon.Id,            // a row of weapon.prefabs, not a pointer: the actor stays plain data
+    damage_sound: sfx.Id,
     texture_asset: scene.AssetId,   // looked up when drawn: a placeholder until the texture is loaded
 }
 
@@ -132,7 +126,7 @@ Draw :: proc() {
     for i:int = 0; i < actor_count; i += 1 {
         actor:^Actor = sorted_list[i]
         if actor.texture_asset != scene.ASSET_NONE { actor.visuals.texture = assets.Texture(actor.texture_asset) }
-        spr_glue.DrawSpriteKarl2d(&actor.visuals)
+        spr_glue.DrawSheetSpriteKarl2d(animations.List(), &actor.visuals)
         if actor.draw_callback == nil { continue }
         actor.draw_callback(actor)
     }

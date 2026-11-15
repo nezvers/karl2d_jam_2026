@@ -1,6 +1,7 @@
 package vfx
 
 import spr "../sprite"
+import "../animations"
 import spr_glue "../sprite/karl2d"
 import "../assets"
 import "../scene"
@@ -9,7 +10,7 @@ import "../scene"
 vec2 :: [2]f32
 
 Vfx :: struct {
-    using visual: spr_glue.SpriteKarl2d,
+    using visual: spr_glue.SheetSpriteKarl2d,
     is_foreground:bool,
     id:int,
     texture_asset: scene.AssetId,
@@ -97,31 +98,14 @@ RemoveFG :: proc(inst: ^Vfx){
 
 Update :: proc(delta_time:f32) {
     for i:int = fg_count - 1; i > -1; i -= 1 {
-        if !UpdateAnimation(&foreground_pool[i].animation_set, delta_time) { continue }
+        if !spr.AnimatorUpdateOnce(animations.List(), &foreground_pool[i].sprite.animator, delta_time) { continue }
         RemoveFG(&foreground_pool[i])
     }
 
     for i:int = bg_count - 1; i > -1; i -= 1 {
-        if !UpdateAnimation(&background_pool[i].animation_set, delta_time) { continue }
+        if !spr.AnimatorUpdateOnce(animations.List(), &background_pool[i].sprite.animator, delta_time) { continue }
         RemoveBG(&background_pool[i])
     }
-}
-
-UpdateAnimation::proc(animation_set:^spr.AnimationSet, delta_time:f32)->(wrap:bool) {
-    animation_set.time += delta_time * animation_set.frame_rate
-    if animation_set.time < 1 {
-        return
-    }
-    image_count:int = len(animation_set.frames[animation_set.animation_index].data)
-    increment:u32 = cast(u32)animation_set.time
-    animation_set.time -= cast(f32)increment
-    animation_set.image_index = (animation_set.image_index + increment)
-    if animation_set.image_index < cast(u32)image_count {
-        return
-    }
-    animation_set.image_index = cast(u32)image_count - 1
-    wrap = true
-    return
 }
 
 DrawBackground :: proc() {
@@ -140,5 +124,5 @@ DrawForeground :: proc() {
 
 DrawInstance::proc(inst: ^Vfx){
     if inst.texture_asset != scene.ASSET_NONE { inst.texture = assets.Texture(inst.texture_asset) }
-    spr_glue.DrawSprite(&inst.sprite, inst.texture, inst.tint)
+    spr_glue.DrawSheetSprite(animations.List(), &inst.sprite, inst.texture, inst.tint)
 }

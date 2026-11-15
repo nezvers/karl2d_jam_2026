@@ -44,7 +44,6 @@ screen_game_def: scene.SceneDef = {
 player_actor: ^actor.Actor
 npc_actor: ^actor.Actor
 
-npc_shotgun: weapon.Weapon
 music:karl2d.Audio_Stream
 music_ready: bool
 
@@ -57,7 +56,6 @@ init :: proc() {
     state.g.background_color.g = 0x96
     state.g.background_color.b = 0x8c
     // The assets are loaded by the scene system, this scene required them. Resets the pools
-    sfx.Bind()
     projectile.Reset()
     actor.ResolvePrefabs()
     actor.Reset()
@@ -71,8 +69,7 @@ init :: proc() {
     actor_new, ok = actor.NewInstance(actor.prefab_electrician, {30,30})
     if ok {
         npc_actor = actor_new
-        npc_shotgun = weapon.prefab_shotgun
-        actor_new.weapon = &npc_shotgun
+        actor_new.weapon = weapon.SHOTGUN
     }
 
     enemies.Start()
@@ -131,16 +128,12 @@ process :: proc() {
                     // TODO: death VFX
                 } else {
                     act.velocity += proj.move_dir * proj.kickback
-                    if act.damage_sound != nil {
-                        sfx.Play(act.damage_sound)
-                    }
+                    sfx.Play(act.damage_sound)
                 }
-                if proj.vfx_impact != nil {
-                    _, _ = vfx.NewInstance(proj.vfx_impact^, proj.position)
+                if proj.vfx_impact != vfx.NONE {
+                    _, _ = vfx.NewInstance(vfx.prefabs[proj.vfx_impact], proj.position)
                 }
-                if proj.sfx_impact != nil {
-                    sfx.Play(proj.sfx_impact)
-                }
+                sfx.Play(proj.sfx_impact)
                 // TODO: impact VFX
                 if !proj.stay{
                     projectile.Remove(proj)

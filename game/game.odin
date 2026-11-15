@@ -9,6 +9,7 @@ import screen "game_screens"
 import "window"
 import "actor"
 import "assets"
+import "sfx"
 import "scene"
 import scene_glue "scene/karl2d"
 // import "core:math"
@@ -82,6 +83,7 @@ game_init_state :: proc(k2_state: ^karl2d.State, allocator: runtime.Allocator) {
 	g.placeholder = scene_glue.PlaceholderTexture()
 	assets.Bind(&g.scene_system.assets, g.placeholder)
 	scene.SceneSystemInit(&g.scene_system, {scene_memory = g.scene_memory[:], decode_memory = g.decode_memory[:], allocator = allocator}, screen.List(), assets.defs[:], scene_glue.loaders[:], &g.asset_storage)
+	sfx.Bind(g.sfx_states[:])
 	actor.RegisterPrefabs(&g.scene_system)
 
 	// STARTING SCREEN
@@ -192,6 +194,7 @@ game_hot_reloaded :: proc(memory: ^Game_Memory, k2_state: ^karl2d.State) {
 	state.g = g
 	// The new code has its own tables. The memory (loaded assets, which scene runs) is the old one
 	assets.Bind(&g.scene_system.assets, g.placeholder)
+	sfx.Bind(g.sfx_states[:])
 	scene.SceneRebind(&g.scene_system, screen.List(), assets.defs[:], scene_glue.loaders[:])
 	scene.SceneResume(&g.scene_system)
 }

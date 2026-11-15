@@ -5,7 +5,6 @@ import "core:math/rand"
 import "../cool_math"
 import "core:math"
 // import "../projectile"
-import "../weapon"
 
 // import karl2d "../karl2d"
 // import spr "../sprite"
@@ -16,14 +15,11 @@ vec2 :: [2]f32
 // MAX_ENEMIES :: 30
 START_ENEMY_COUNT :: 20
 active_trshold:int
-weapon_bite: weapon.Weapon
 
 Reset :: proc() {
     active_trshold = START_ENEMY_COUNT
-    // Store enemy prefab
-    weapon_bite = weapon.prefab_bite
+    // the callback lives here because this package imports actor, not the other way around
     actor.prefab_zombie.update_callback = UpdateZombie
-    actor.prefab_zombie.weapon = &weapon_bite
 }
 
 Start :: proc() {

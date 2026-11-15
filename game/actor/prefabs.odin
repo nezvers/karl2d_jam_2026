@@ -1,23 +1,12 @@
 package actor
 
 import karl2d "../karl2d"
-import spr "../sprite"
+
 import "../assets"
 import "../scene"
 import "../sfx"
-
-CHAR_SIZE :spr.vec2: {16, 16}
-// All positions on texture
-tex_pos_char: []spr.vec2 = {{0,0}, {16,0}, {32,0}, {48,0}, {64,0}, {80,0}, {96,0}, {112,0}}
-anim_char_idle: spr.Frames = {tex_pos_char[0:2], CHAR_SIZE}
-anim_char_walk: spr.Frames = {tex_pos_char[2:8], CHAR_SIZE}
-anim_char_up: spr.Frames = {tex_pos_char[5:6], CHAR_SIZE}
-anim_char_down: spr.Frames = {tex_pos_char[7:8], CHAR_SIZE}
-
-character_animations: spr.AnimationSet = {
-    {&anim_char_idle, &anim_char_walk, &anim_char_up, &anim_char_down},
-    cast(u32)ActorAnimations.char_idle, 0, 12, 0,
-}
+import "../weapon"
+import "../animations"
 
 // Prefabs are data: a root value and patches over it, like an inherited scene. A child only says what is different.
 // They are resolved ONCE (ResolvePrefabs, when the scene starts) into the plain values below, so spawning stays a struct copy.
@@ -27,7 +16,7 @@ character_animations: spr.AnimationSet = {
 def_character: scene.PrefabDef(Actor) = {
     value = {
         visuals = {
-            animation_set = character_animations,
+            animator = {sheet = animations.SHEET_CHARACTER, clip = animations.CHAR_IDLE, frame_rate = 12},
             position = {0, 0},
             origin = {8, 16},
             scale = {1, 1},
@@ -43,7 +32,7 @@ def_character: scene.PrefabDef(Actor) = {
         health = {
             value = 100,
         },
-        damage_sound = &sfx.damage,
+        damage_sound = sfx.DAMAGE,
         spawn_callback = nil,
         draw_callback = nil,
         update_callback = UpdateCharacter, // TODO: each character its specialized update
@@ -72,7 +61,8 @@ def_zombie: scene.PrefabDef(Actor) = {
         scene.PatchField(Actor, "texture_asset", assets.TEXTURE_ZOMBIE),
         scene.PatchField(Actor, "deacceleration", f32(1.0)),
         scene.PatchField(Actor, "max_speed", f32(20.0)),
-        scene.PatchField(Actor, "damage_sound", (^sfx.SfxKarl2D)(nil)),
+        scene.PatchField(Actor, "damage_sound", sfx.NONE),
+        scene.PatchField(Actor, "weapon", weapon.BITE),
         scene.PatchField(Actor, "type", ActorType.Enemy),
     },
     assets = {assets.TEXTURE_ZOMBIE},

@@ -3,6 +3,8 @@ package game_state
 import "base:runtime"
 import "../assets"
 import "../scene"
+import "../sfx"
+import "../sound_effects"
 
 // Build knobs of the hot reload test (hot_reload_test/): they change the size or the layout of Game_Memory on purpose
 GAME_MEMORY_PAD :: #config(GAME_MEMORY_PAD, 0)
@@ -35,6 +37,7 @@ Game_Memory :: struct {
 	asset_storage: scene.AssetStorage(assets.COUNT),
 	scene_memory: [SCENE_MEMORY_SIZE]byte,
 	decode_memory: [DECODE_MEMORY_SIZE]byte,
+	sfx_states: [sfx.COUNT]sound_effects.SoundState,    // pitch and last trigger of each sound effect, the settings are constant data in sfx
 	placeholder: scene.AssetValue,    // texture shown until a texture asset is loaded
 }
 

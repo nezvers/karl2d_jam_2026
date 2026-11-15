@@ -1,6 +1,7 @@
 package projectile
 
 import spr "../sprite"
+import "../animations"
 import spr_glue "../sprite/karl2d"
 import karl2d "../karl2d"
 import "core:math/rand"
@@ -31,10 +32,10 @@ State :: struct {
 
 Projectile :: struct {
     using state: State,
-    using visual: spr_glue.SpriteKarl2d,
+    using visual: spr_glue.SheetSpriteKarl2d,
     using properties: Properties,
-    vfx_impact: ^vfx.Vfx,
-    sfx_impact: ^sfx.SfxKarl2D,
+    vfx_impact: vfx.Id,
+    sfx_impact: sfx.Id,
     id:int,
     texture_asset: scene.AssetId,
 }
@@ -83,7 +84,7 @@ UpdateInstance :: proc(projectile: ^Projectile, delta_time: f32) {
         Remove(projectile)
         return
     }
-    spr.UpdateAnimation(&projectile.animation_set, delta_time)
+    spr.SheetSpriteUpdate(animations.List(), &projectile.sprite, delta_time)
     projectile.lifetime -= delta_time
     projectile.position += projectile.velocity * delta_time
     projectile.velocity -= projectile.velocity * projectile.damping
@@ -94,7 +95,7 @@ Draw :: proc() {
     active_pool: = projectile_pool[:projectile_count]
     for &projectile in active_pool {
         if projectile.texture_asset != scene.ASSET_NONE { projectile.texture = assets.Texture(projectile.texture_asset) }
-        spr_glue.DrawSprite(&projectile.sprite, projectile.texture, projectile.tint)
+        spr_glue.DrawSheetSprite(animations.List(), &projectile.sprite, projectile.texture, projectile.tint)
     }
 }
 

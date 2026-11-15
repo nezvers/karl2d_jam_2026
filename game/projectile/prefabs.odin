@@ -1,66 +1,62 @@
 package projectile
 
 import karl2d "../karl2d"
-import spr "../sprite"
+import "../animations"
 import "../vfx"
 import "../assets"
 import "../sfx"
-// import spr_glue "../sprite/karl2d"
 
+// Projectiles are rows of this table, weapons refer to them by Id
+Id :: distinct u8
+NONE :: Id(0)
+BULLET :: Id(1)
+BITE :: Id(2)
+COUNT :: 3
 
-// Default projectile "Animation"
-tex_pos_projectile: []spr.vec2 = {{0,0}, {16,0}, {32,0}, {48,0}, {64,0}, {80,0}, {96,0}, {112,0}}
-anim_projectile1: spr.Frames = {tex_pos_projectile[:1], {16, 16}}
-anim_projectile5: spr.Frames = {tex_pos_projectile[:5], {16, 16}}
-
-// Templates - require assigned texture
-prefab_bullet1: Projectile = {
-    texture_asset = assets.TEXTURE_BULLET,
-    state = {
-        lifetime = 0.5,
-    },
-    properties = {
-        kickback = 200,
-        speed = 240,
-        damping = 0.05,
-        damage = 50.0,
-    },
-    sprite = {
-        animation_set = {
-            frames = {&anim_projectile1},
+// Templates, constant data: the texture is looked up from the asset when drawn
+prefabs: [COUNT]Projectile = {
+    BULLET = {
+        texture_asset = assets.TEXTURE_BULLET,
+        state = {
+            lifetime = 0.5,
         },
-        origin = {8, 8},
-        scale = {1, 1},
-        offset = {0, -7},
-    },
-    visible = true,
-    tint = karl2d.WHITE,
-    vfx_impact = &vfx.prefab_impact,
-    sfx_impact = &sfx.impact,
-}
-
-prefab_bite: Projectile = {
-    texture_asset = assets.TEXTURE_BITE,
-    state = {
-        lifetime = 0.42,
-    },
-    properties = {
-        kickback = 100,
-        speed = 0,
-        damping = 0.05,
-        damage = 10.0,
-        stay = true,
-        dont_rotate = true,
-    },
-    sprite = {
-        animation_set = {
-            frames = {&anim_projectile5},
-            frame_rate = 12,
+        properties = {
+            kickback = 200,
+            speed = 240,
+            damping = 0.05,
+            damage = 50.0,
         },
-        origin = {8, 8},
-        scale = {1, 1},
-        offset = {0, -7},
+        sprite = {
+            animator = {sheet = animations.SHEET_PROJECTILE, clip = animations.PROJECTILE_BULLET},
+            origin = {8, 8},
+            scale = {1, 1},
+            offset = {0, -7},
+        },
+        visible = true,
+        tint = karl2d.WHITE,
+        vfx_impact = vfx.IMPACT,
+        sfx_impact = sfx.IMPACT,
     },
-    visible = true,
-    tint = karl2d.WHITE,
+    BITE = {
+        texture_asset = assets.TEXTURE_BITE,
+        state = {
+            lifetime = 0.42,
+        },
+        properties = {
+            kickback = 100,
+            speed = 0,
+            damping = 0.05,
+            damage = 10.0,
+            stay = true,
+            dont_rotate = true,
+        },
+        sprite = {
+            animator = {sheet = animations.SHEET_PROJECTILE, clip = animations.PROJECTILE_BITE, frame_rate = 12},
+            origin = {8, 8},
+            scale = {1, 1},
+            offset = {0, -7},
+        },
+        visible = true,
+        tint = karl2d.WHITE,
+    },
 }

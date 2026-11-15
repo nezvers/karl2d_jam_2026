@@ -2,6 +2,7 @@ package actor
 
 
 import spr "../sprite"
+import "../animations"
 import "../weapon"
 import "../sfx"
 import "../cool_math"
@@ -25,61 +26,56 @@ UpdateCharacter :: proc(actor: ^Actor, delta_time:f32) {
     } else if actor.aim_dir.x < -0.01 {
         actor.scale.x = -1
     }
-    UpdateAnimation(&actor.sprite.animation_set, is_moving)
-    spr.UpdateSprite(&actor.sprite, delta_time)
+    UpdateAnimation(&actor.sprite.animator, is_moving)
+    spr.SheetSpriteUpdate(animations.List(), &actor.sprite, delta_time)
 
     actor.position += actor.velocity * delta_time
 
-    if actor.weapon != nil { UpdateActorWeapon(actor, delta_time) }
+    if actor.weapon != weapon.NONE { UpdateActorWeapon(actor, delta_time) }
 }
 
 
 UpdateActorWeapon :: proc(actor: ^Actor, delta_time: f32) {
+    current: ^weapon.Weapon = &weapon.prefabs[actor.weapon]
     if !actor.attack {
-        actor.attack_timer += actor.weapon.fire_rate * delta_time
+        actor.attack_timer += current.fire_rate * delta_time
         if actor.attack_timer > 1 { 
             actor.attack_timer = 1
         }
         return
     }
-    actor.attack_timer += actor.weapon.fire_rate * delta_time
+    actor.attack_timer += current.fire_rate * delta_time
     if actor.attack_timer < 1 { return }
 
     count:i32 = i32(actor.attack_timer)
     actor.attack_timer -= f32(count)
     for i:i32 = 0; i < count; i += 1 {
-        actor.velocity += delta_time * actor.weapon.kickback * -actor.aim_dir
-        for angle in actor.weapon.angles {
+        actor.velocity += delta_time * current.kickback * -actor.aim_dir
+        for angle in current.angles[:current.angle_count] {
             SPAWN_DIST :: 5
             pos: vec2 = actor.position + actor.aim_dir * SPAWN_DIST
             dir:vec2 = cool_math.Vec2Rotate(actor.aim_dir, angle)
-            bullet_preset: = actor.weapon.bullet
-            inst, ok: = projectile.SpawnProjectile(bullet_preset^, pos, dir, actor.weapon.spread)
+            inst, ok: = projectile.SpawnProjectile(projectile.prefabs[current.bullet], pos, dir, current.spread)
             if !ok { continue }
             inst.collide = ~cast(u32)actor.type
         }
-        if actor.weapon.sound != nil {
-            sfx.Play(actor.weapon.sound)
-        }
+        sfx.Play(current.sound)
         // if i < 1 { continue }
         // TODO: pre-heat projectile update by fire_rate
     }
 }
 
-UpdateAnimation :: proc(anim_set: ^spr.AnimationSet, is_walking: bool) {
-    if is_walking == (anim_set.animation_index == cast(u32)ActorAnimations.char_walk) {
+UpdateAnimation :: proc(animator: ^spr.Animator, is_walking: bool) {
+    if is_walking == (animator.clip == animations.CHAR_WALK) {
         return
     }
-    if is_walking{
-        spr.ChangeAnimation(anim_set, cast(u32)ActorAnimations.char_walk)
-    } else {
-        spr.ChangeAnimation(anim_set, cast(u32)ActorAnimations.char_idle)
-    }
+    spr.AnimatorChange(animator, animations.CHAR_WALK if is_walking else animations.CHAR_IDLE)
 }
 
 DrawElectricianCallback :: proc(actor_ptr: ^Actor) {
     // Keep assigned weapon as reference data.
-    weapon_copy: = actor_ptr.weapon^
+    if actor_ptr.weapon == weapon.NONE { return }
+    weapon_copy: = weapon.prefabs[actor_ptr.weapon]
     weapon_copy.position = actor_ptr.position + {0, -5}
     weapon_copy.rotation = cool_math.Vec2Angle(actor_ptr.aim_dir)
     
