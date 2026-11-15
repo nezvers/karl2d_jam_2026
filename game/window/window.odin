@@ -72,3 +72,12 @@ update_game_center :: proc() {
 	karl2d.destroy_render_texture(state.g.game_texture)
 	state.g.game_texture = karl2d.create_render_texture(cast(int)state.g.view_rect.w, cast(int)state.g.view_rect.h)
 }
+
+// Take the size of the window as it is now and fit the camera to it. The camera is otherwise only fitted by a resize event, which
+// does not come after a hot reload that made new game memory: the window did not change, the memory did
+refresh :: proc() {
+	state.g.window_scale = karl2d.get_window_scale()
+	state.g.window_width = int(f32(karl2d.get_screen_width()) / state.g.window_scale)
+	state.g.window_height = int(f32(karl2d.get_screen_height()) / state.g.window_scale)
+	update_game_center()
+}

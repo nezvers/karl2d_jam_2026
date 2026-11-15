@@ -77,6 +77,7 @@ game_init_state :: proc(k2_state: ^karl2d.State, allocator: runtime.Allocator) {
 	g.game_width = 480
 	g.game_height = 270
 	g.background_color = karl2d.WHITE
+	window.refresh()
 
 	// Assets: a table of data that is loaded in the background. Scenes say what they need, the system loads it behind a transition
 	// when a scene was not predicted and prefetches the assets of the scenes that are likely to come next
