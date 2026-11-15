@@ -2,6 +2,7 @@ package projectile
 
 import spr "../sprite"
 import "../animations"
+import "../perf"
 import spr_glue "../sprite/karl2d"
 import karl2d "../karl2d"
 import "core:math/rand"
@@ -62,6 +63,7 @@ GetNew :: proc(preset: Projectile)->(projectile: ^Projectile, ok:bool) {
     projectile = &pool.buffer[pool.count]
     projectile^ = preset
     projectile.id = pool.count
+    when perf.PERF_TEST { perf.projectiles_spawned += 1 }
     ok = true
     pool.count += 1
     return

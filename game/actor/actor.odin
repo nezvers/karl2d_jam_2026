@@ -7,6 +7,7 @@ import "../scene"
 // import karl2d "../karl2d"
 import "../weapon"
 import "../sfx"
+import "../perf"
 import "../animations"
 import "core:sort"
 // import "core:math/rand"
@@ -80,7 +81,7 @@ Actor :: struct {
 
 
 // Actor Pool
-MAX_ACTORS :: 32
+MAX_ACTORS :: 256 when perf.PERF_STRESS else 32
 // The actors are data in the game memory (a hot reload keeps them), the package works on the pool it is bound to
 Pool :: struct {
     buffer: [MAX_ACTORS]Actor,

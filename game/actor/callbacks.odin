@@ -7,6 +7,7 @@ import "../weapon"
 import "../sfx"
 import "../cool_math"
 import "../projectile"
+import "../perf"
 
 LerpVelocity :: proc(from, to: vec2, t:f32)->vec2 {
     return from + (to - from) * t
@@ -44,13 +45,14 @@ UpdateActorWeapon :: proc(actor: ^Actor, delta_time: f32) {
         }
         return
     }
-    actor.attack_timer += current.fire_rate * delta_time
+    fire_rate: f32 = current.fire_rate * (6 if perf.PERF_STRESS else 1)
+    actor.attack_timer += fire_rate * delta_time
     if actor.attack_timer < 1 { return }
 
     count:i32 = i32(actor.attack_timer)
     actor.attack_timer -= f32(count)
     for i:i32 = 0; i < count; i += 1 {
-        actor.velocity += delta_time * current.kickback * -actor.aim_dir
+        when !perf.PERF_TEST { actor.velocity += delta_time * current.kickback * -actor.aim_dir }
         for angle in current.angles[:current.angle_count] {
             SPAWN_DIST :: 5
             pos: vec2 = actor.position + actor.aim_dir * SPAWN_DIST

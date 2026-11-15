@@ -1,6 +1,7 @@
 package enemies
 
 import "../actor"
+import "../perf"
 import "core:math/rand"
 import "../cool_math"
 import "core:math"
@@ -13,7 +14,7 @@ import "core:math"
 vec2 :: [2]f32
 
 // MAX_ENEMIES :: 30
-START_ENEMY_COUNT :: 20
+START_ENEMY_COUNT :: 200 when perf.PERF_STRESS else 20
 
 // The procs of this package, given to the actors by number. Call it again after a hot reload: the table is a global of the code
 Bind :: proc() {
