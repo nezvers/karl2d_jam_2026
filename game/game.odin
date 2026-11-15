@@ -12,9 +12,6 @@ import "projectile"
 import "vfx"
 import "assets"
 import "sfx"
-import "perf"
-import "core:time"
-import hm "core:container/handle_map"
 import "scene"
 import scene_glue "scene/karl2d"
 // import "core:math"
@@ -97,7 +94,7 @@ game_init_state :: proc(k2_state: ^karl2d.State, allocator: runtime.Allocator) {
 		screen.StartAt(cast(screen.Screens)restore_screen)
 		g.notice = restore_notice
 	} else {
-		when perf.PERF_TEST { screen.StartAt(.Gameplay) } else { screen.Start() }
+		screen.Start()
 	}
 	restore_screen = -1
 	restore_notice = 0
@@ -176,22 +173,15 @@ game_update :: proc() -> bool {
 	window.process_events(events)
 
 	g.counter += 1
-	when perf.PERF_TEST { perf_begin_frame() }
 	// loads a few assets, runs the transition and the update of the scene
 	scene.SceneUpdate(&g.scene_system, karl2d.get_frame_time())
-	when perf.PERF_TEST { perf.window.update_max = max(perf.window.update_max, perf_lap()) }
 
 	karl2d.clear(g.background_color)
 	scene.SceneDraw(&g.scene_system)
 	scene.SceneGui(&g.scene_system)
 	scene_glue.DrawTransition(&g.scene_system, window.get_window_size())
 	draw_notice(karl2d.get_frame_time())
-	when perf.PERF_TEST { perf.window.draw_max = max(perf.window.draw_max, perf_lap()) }
 	karl2d.present()
-	when perf.PERF_TEST {
-		perf.window.present_max = max(perf.window.present_max, perf_lap())
-		if !perf_end_frame() { return false }
-	}
 
 	free_all(context.temp_allocator)
 	return true
@@ -282,46 +272,4 @@ game_hot_reloaded :: proc(memory: ^Game_Memory, k2_state: ^karl2d.State) {
 game_force_restart :: proc() -> int {
 	if !karl2d.key_went_down(.F6) { return 0 }
 	return 2 if karl2d.key_is_held(.Left_Shift) || karl2d.key_is_held(.Right_Shift) else 1
-}
-
-// TEMPORARY measurements, see package perf
-@(private="file")
-perf_lap_tick: time.Tick
-
-@(private="file")
-perf_begin_frame :: proc() {
-	now: time.Tick = time.tick_now()
-	if perf.run_start == {} { perf.run_start = now; perf.window.start = now }
-	if perf.window.last_frame != {} {
-		perf.window.frame_max = max(perf.window.frame_max, time.duration_milliseconds(time.tick_diff(perf.window.last_frame, now)))
-	}
-	perf.window.last_frame = now
-	perf_lap_tick = now
-}
-
-// milliseconds since the last lap
-@(private="file")
-perf_lap :: proc() -> f64 {
-	now: time.Tick = time.tick_now()
-	result: f64 = time.duration_milliseconds(time.tick_diff(perf_lap_tick, now))
-	perf_lap_tick = now
-	return result
-}
-
-@(private="file")
-perf_end_frame :: proc() -> bool {
-	w: ^perf.Window = &perf.window
-	w.frames += 1
-	now: time.Tick = time.tick_now()
-	if time.duration_seconds(time.tick_diff(w.start, now)) < 1 { return true }
-	k2: ^karl2d.State = karl2d.get_internal_state()
-	voices: int = int(hm.len(k2.audio_voices))
-	elapsed: f64 = time.duration_seconds(time.tick_diff(perf.run_start, now))
-	fmt.printfln("[PERF] t=%5.1f fps=%3d frame_max=%6.2fms update_max=%6.2f draw_max=%6.2f present_max=%6.2f | actors=%2d proj=%3d fg_vfx=%3d bg_vfx=%3d kills=%4d | sfx asked=%3d played=%3d voices=%3d | spawned proj=%3d vfx=%3d",
-		elapsed, w.frames, w.frame_max, w.update_max, w.draw_max, w.present_max,
-		g.actors.count, g.projectiles.count, g.effects.fg_count, g.effects.bg_count, g.kill_count,
-		perf.sfx_asked, perf.sfx_played, voices, perf.projectiles_spawned, perf.vfx_spawned)
-	perf.sfx_asked, perf.sfx_played, perf.projectiles_spawned, perf.vfx_spawned = 0, 0, 0, 0
-	w^ = {start = now, last_frame = w.last_frame}
-	return elapsed < f64(perf.PERF_SECONDS)
 }
